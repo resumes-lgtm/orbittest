@@ -1,0 +1,2609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>O.R.B.I.T. System — Leadership &amp; Workforce Development Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-is@18/umd/react-is.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #080f1a; }
+  #root { min-height: 100vh; }
+  * { box-sizing: border-box; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: #0d1726; }
+  ::-webkit-scrollbar-thumb { background: #22314a; border-radius: 6px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2c3f5e; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;color:#8b96ab;font-family:Inter,sans-serif;font-size:14px;">
+    Loading O.R.B.I.T. System…
+  </div>
+</div>
+
+<script type="text/babel" data-type="module" data-presets="react">
+const { useState, useMemo, useEffect } = React;
+const {
+  RadarChart, PolarGrid, PolarAngleAxis, Radar: RRadar,
+  ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid,
+  LineChart, Line, BarChart, Bar, ResponsiveContainer, Tooltip,
+  PieChart, Pie, Cell,
+} = Recharts;
+
+/* ────────────────────────────────────────────────────────────
+   ICON COMPONENTS
+   Hand-built inline SVGs replacing the lucide-react import
+   (same stroke-based visual language: 24x24 viewBox, currentColor)
+──────────────────────────────────────────────────────────── */
+function makeIcon(paths) {
+  return function Icon({ size = 16, strokeWidth = 1.75, color = "currentColor", style, ...rest }) {
+    return (
+      <svg
+        width={size} height={size} viewBox="0 0 24 24" fill="none"
+        stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
+        style={{ flexShrink: 0, ...style }} {...rest}
+      >
+        {paths}
+      </svg>
+    );
+  };
+}
+
+const RadarIcon = makeIcon(
+  <>
+    <path d="M19.07 4.93A10 10 0 0 0 6.99 3.34" />
+    <path d="M4 6h.01" />
+    <path d="M2.29 9.62A10 10 0 1 0 21.31 8.35" />
+    <path d="M16.24 7.76A6 6 0 1 0 8.23 16.67" />
+    <path d="M12 18h.01" />
+    <path d="M12 12l4 4" />
+    <circle cx="12" cy="12" r="2" />
+  </>
+);
+
+const Target = makeIcon(
+  <>
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="6" />
+    <circle cx="12" cy="12" r="2" />
+  </>
+);
+
+const Brain = makeIcon(
+  <>
+    <path d="M9.5 2a2.5 2.5 0 0 1 2.5 2.5v15a2.5 2.5 0 0 1-4.96.44A2.5 2.5 0 0 1 5.5 17.5v-1.05A2.5 2.5 0 0 1 3 14V9a2.5 2.5 0 0 1 2-2.45V6A4 4 0 0 1 9.5 2Z" />
+    <path d="M14.5 2a2.5 2.5 0 0 0-2.5 2.5v15a2.5 2.5 0 0 0 4.96.44A2.5 2.5 0 0 0 18.5 17.5v-1.05A2.5 2.5 0 0 0 21 14V9a2.5 2.5 0 0 0-2-2.45V6A4 4 0 0 0 14.5 2Z" />
+  </>
+);
+
+const Orbit = makeIcon(
+  <>
+    <circle cx="12" cy="12" r="3" />
+    <circle cx="19" cy="5" r="2" />
+    <circle cx="5" cy="19" r="2" />
+    <path d="M10.4 21.9a10 10 0 0 0 9.5-5.4" />
+    <path d="M13.6 2.1a10 10 0 0 0-9.5 5.4" />
+    <path d="M17.5 6.5a10 10 0 0 1 0 11" />
+    <path d="M6.5 17.5a10 10 0 0 1 0-11" />
+  </>
+);
+
+const Wrench = makeIcon(
+  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z" />
+);
+
+const LayoutDashboard = makeIcon(
+  <>
+    <rect x="3" y="3" width="7" height="9" rx="1" />
+    <rect x="14" y="3" width="7" height="5" rx="1" />
+    <rect x="14" y="12" width="7" height="9" rx="1" />
+    <rect x="3" y="16" width="7" height="5" rx="1" />
+  </>
+);
+
+const TrendingUp = makeIcon(
+  <>
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+    <polyline points="17 6 23 6 23 12" />
+  </>
+);
+
+const Store = makeIcon(
+  <>
+    <path d="M3 9a2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0 2 2 2 2 0 0 0 2-2l-1.3-4.6a1 1 0 0 0-1-.74H5.3a1 1 0 0 0-1 .74L3 9Z" />
+    <path d="M4 11v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" />
+    <path d="M9.5 19v-4.5a1.5 1.5 0 0 1 1.5-1.5h2a1.5 1.5 0 0 1 1.5 1.5V19" />
+  </>
+);
+
+const ChevronRight = makeIcon(<path d="m9 18 6-6-6-6" />);
+
+const Circle = makeIcon(<circle cx="12" cy="12" r="9" />);
+
+const ArrowUpRight = makeIcon(
+  <>
+    <line x1="7" y1="17" x2="17" y2="7" />
+    <polyline points="7 7 17 7 17 17" />
+  </>
+);
+
+const ArrowDownRight = makeIcon(
+  <>
+    <line x1="7" y1="7" x2="17" y2="17" />
+    <polyline points="17 7 17 17 7 17" />
+  </>
+);
+
+const Minus = makeIcon(<line x1="4" y1="12" x2="20" y2="12" />);
+
+const Lock = makeIcon(
+  <>
+    <rect x="4" y="11" width="16" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </>
+);
+
+const CircleDot = makeIcon(
+  <>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+  </>
+);
+
+const CheckCircle2 = makeIcon(
+  <>
+    <circle cx="12" cy="12" r="9" />
+    <path d="m8.5 12.2 2.2 2.2 4.8-4.8" />
+  </>
+);
+
+const GitBranch = makeIcon(
+  <>
+    <line x1="6" y1="3" x2="6" y2="15" />
+    <circle cx="18" cy="6" r="3" />
+    <circle cx="6" cy="18" r="3" />
+    <path d="M18 9a9 9 0 0 1-9 9" />
+  </>
+);
+/* ────────────────────────────────────────────────────────────
+   DESIGN TOKENS
+   Enterprise identity: deep navy + gold (supersedes SWEP palette)
+   Five-stage methodology colors: Diagnose→Design→Develop→Deploy→Measure
+──────────────────────────────────────────────────────────── */
+const T = {
+  navy: "#0d1726",
+  navyDeep: "#080f1a",
+  panel: "#111d30",
+  panelAlt: "#152238",
+  line: "#22314a",
+  gold: "#c9a84c",
+  goldSoft: "rgba(201,168,76,0.14)",
+  text: "#eef1f6",
+  textMute: "#8b96ab",
+  textDim: "#5c6883",
+};
+
+const STAGE = {
+  Diagnose: "#8b6fd6",
+  Design: "#3f7fc4",
+  Develop: "#1f9e93",
+  Deploy: "#d97e2c",
+  Measure: "#c9a84c",
+};
+
+/* Light theme — Talent Radar only, to separate the Individual layer from the dark admin shell */
+const L = {
+  bg: "#0a0e1c",
+  panel: "#131a2e",
+  panelAlt: "#1a2340",
+  line: "#2c3660",
+  text: "#eef1f8",
+  textMute: "#9aa3c4",
+  textDim: "#6b7396",
+  accent: "#7c5cf0",
+  accentGlow: "rgba(124,92,240,0.35)",
+  teal: "#2fd6c4",
+  red: "#ff6b81",
+  amber: "#f0b83c",
+};
+const LAYER = {
+  "Individual": { color: "#4fb8c4", desc: "Scores a person" },
+  "Organizational — Internal": { color: "#6f8fd6", desc: "Reads live client data, inside an active engagement" },
+  "Organizational — External": { color: "#d97e6a", desc: "Diagnoses an org from outside, before any engagement" },
+};
+
+const MODE_STYLE = {
+  "Rules-based": { fg: "#7fd6c8", bg: "rgba(31,158,147,0.12)" },
+  "Manual / Admin-curated": { fg: "#9fb4d6", bg: "rgba(63,127,196,0.12)" },
+  "AI/ML — v2": { fg: "#d99b4a", bg: "rgba(217,126,44,0.12)" },
+};
+
+const fontImport = `
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+`;
+
+/* ────────────────────────────────────────────────────────────
+   MOCK DATA — illustrative only, standing in for Salesforce feed
+──────────────────────────────────────────────────────────── */
+const FUNNEL_DEFS = {
+  "Engaged": "First touchpoint with LIFT JAX or a program partner — an info session, hiring event, or outreach contact. Not yet formally enrolled.",
+  "Assessed": "Completed the initial readiness assessment — the baseline score across all 6 readiness categories.",
+  "Developing": "Actively working through workshops, coaching, or certifications to close the gaps identified at assessment.",
+  "Referral-Ready": "Readiness score has crossed the threshold to be referred to an employer partner for consideration.",
+  "Referred to Employers": "Formally submitted or introduced to one or more employer partners for an open role.",
+  "Interviewed": "Completed at least one employer interview.",
+  "Offered": "Received a formal job offer from an employer partner.",
+  "Hired": "Accepted an offer and started employment.",
+};
+
+/* Client-level operational detail — from the LIFT JAX flyer. Only LIFT JAX has real reference numbers so far. */
+const CLIENT_DETAIL = {
+  "LIFT JAX — Debs Store": {
+    period: "May 1 – May 31, 2026",
+    activeParticipants: 150, hired: 22, medianWage: 19.25, referralReady: 64, placementReady: 31,
+    kpis: [
+      { label: "Active Participants", value: "150" },
+      { label: "Referral-Ready", value: "64", sub: "42%" },
+      { label: "Placement-Ready", value: "31", sub: "21%" },
+      { label: "Hired", value: "22", sub: "15%" },
+      { label: "90-Day Retention", value: "87%", sub: "19 of 22" },
+    ],
+    funnel: [
+      { stage: "Engaged", value: 212 }, { stage: "Assessed", value: 150 }, { stage: "Developing", value: 74 },
+      { stage: "Referral-Ready", value: 64 }, { stage: "Referred to Employers", value: 48 },
+      { stage: "Interviewed", value: 31 }, { stage: "Offered", value: 24 }, { stage: "Hired", value: 22 },
+    ],
+    overallReadiness: 68,
+    readinessScores: [
+      { cat: "Work Habits & Professionalism", score: 72 }, { cat: "Communication", score: 64 },
+      { cat: "Digital & AI Literacy", score: 61 }, { cat: "Technical Skills", score: 71 },
+      { cat: "Job Search Execution", score: 66 }, { cat: "Career Pathway Clarity", score: 69 },
+    ],
+    partners: [
+      { partner: "Goodwill GoodCareers Center", served: 62, improvement: "+18 pts", referralRate: "48%", hireRate: "26%" },
+      { partner: "Construction Ready", served: 28, improvement: "+21 pts", referralRate: "57%", hireRate: "32%" },
+      { partner: "ORBIT Workforce Workshops", served: 44, improvement: "+15 pts", referralRate: "41%", hireRate: "20%" },
+      { partner: "KIPP / Community Partners", served: 26, improvement: "+12 pts", referralRate: "35%", hireRate: "15%" },
+      { partner: "Transportation Partner", served: 18, improvement: "(Barrier Support)", referralRate: "–", hireRate: "–" },
+    ],
+    employerOutcomes: {
+      employersEngaged: 18, openPositions: 126, participantsReferred: 48, interviewsCompleted: 31,
+      offerRate: "77%", hires: 22, retention90: "87%", medianStartingWage: "$19.25/hr", avgWageIncrease: "+$4.10/hr", withBenefits: "86%",
+    },
+    wageTrend: [
+      { period: "Baseline", wage: 15.10 }, { period: "Month 1", wage: 19.20 },
+      { period: "Month 2", wage: 20.75 }, { period: "Current", wage: 21.85 },
+    ],
+    totalWageImpact: 569000,
+  },
+};
+
+const MODULES = [
+  { id: "signalscan", name: "ORBIT SignalScan™", short: "SignalScan", icon: RadarIcon, stage: "Diagnose", mode: "Rules-based", scope: "Pre-Engagement", layer: "Organizational — External" },
+  { id: "radar", name: "Talent Radar™", short: "Talent Radar", icon: Target, stage: "Diagnose", mode: "Rules-based", scope: "In-Engagement", layer: "Individual" },
+  { id: "succession", name: "Succession Planning", short: "Succession Planning", icon: GitBranch, stage: "Design", mode: "Rules-based", scope: "In-Engagement", layer: "Individual" },
+  { id: "rootcause", name: "Root Cause AI", short: "Root Cause AI", icon: Brain, stage: "Diagnose", mode: "Rules-based", scope: "In-Engagement", layer: "Organizational — Internal" },
+  { id: "constellation", name: "Workforce Constellation™", short: "Constellation", icon: Orbit, stage: "Design", mode: "Rules-based", scope: "In-Engagement", layer: "Organizational — Internal" },
+  { id: "intervention", name: "Intervention Marketplace", short: "Interventions", icon: Wrench, stage: "Develop", mode: "Manual / Admin-curated", scope: "In-Engagement", layer: "Organizational — Internal" },
+  { id: "predictive", name: "Predictive AI", short: "Predictive AI", icon: TrendingUp, stage: "Measure", mode: "AI/ML — v2", scope: "In-Engagement", layer: "Organizational — Internal" },
+  { id: "cec", name: "Executive Command Center", short: "Command Center", icon: LayoutDashboard, stage: "Measure", mode: "Rules-based", scope: "In-Engagement", layer: "Organizational — Internal" },
+  { id: "marketplace", name: "ORBIT Marketplace", short: "Marketplace", icon: Store, stage: "Deploy", mode: "Manual / Admin-curated", scope: "In-Engagement", layer: "Organizational — Internal" },
+];
+
+const COST_MODEL = {
+  "Talent Attraction": { mechanism: "Cost-per-hire inefficiency", floor: 940, ceiling: 380, status: "Cited", note: "SHRM avg cost-per-hire ~$4,700, annualized at a ~20% hiring rate." },
+  "Onboarding": { mechanism: "First-year attrition → replacement cost", floor: 3576, ceiling: 1192, status: "Cited", note: "$14,900 avg cost of a failed first-year hire, at 24%→8% attrition." },
+  "Manager Readiness": { mechanism: "Turnover + output loss under weak managers", floor: 6000, ceiling: 500, status: "Cited", note: "71% of voluntary turnover traces to poor management; incompetent leadership cuts productivity 7–9% (HBR)." },
+  "Communication": { mechanism: "Lost productivity from miscommunication", floor: 18000, ceiling: 500, status: "Cited", note: "Ineffective communication costs $10,000–$55,000/employee/year depending on salary level." },
+  "Performance": { mechanism: "Disengagement-driven output loss", floor: 5500, ceiling: 500, status: "Modeled", note: "Adjacent to engagement–profitability research; not a direct citation. Needs client engagement data." },
+  "Career Mobility": { mechanism: "Turnover from invisible advancement paths", floor: 2900, ceiling: 600, status: "Cited", note: "Orgs with strong internal mobility cut turnover 30%+; magnitude modeled." },
+  "Retention": { mechanism: "Overall voluntary turnover, % of payroll", floor: 11000, ceiling: 2750, status: "Cited", note: "Turnover costs 50–200% of salary; burnout-driven turnover alone consumes 15–20% of payroll." },
+  "Service Delivery": { mechanism: "Revenue/customer impact from staffing-linked quality gaps", floor: 3000, ceiling: 400, status: "Modeled", note: "Needs client SLA/CSAT data to ground — no public benchmark used." },
+  "Systems Friction": { mechanism: "Manual process time drag", floor: 2500, ceiling: 400, status: "Modeled", note: "Needs client time-study data to ground — no public benchmark used." },
+};
+function dragPerEmployee(cat, score) {
+  const m = COST_MODEL[cat];
+  const t = Math.max(0, Math.min(1, (95 - score) / (95 - 30)));
+  return Math.round(m.ceiling + (m.floor - m.ceiling) * t);
+}
+
+const CATEGORY_DEFS = {
+  "Talent Attraction": {
+    def: "How easily the org pulls qualified candidates into open roles.",
+    method: "Time-to-fill, applicant volume per posting, and offer-acceptance rate, benchmarked against sector norms.",
+  },
+  "Onboarding": {
+    def: "Whether new hires reach full productivity on schedule.",
+    method: "Ramp-to-productivity time, 30/60/90-day completion rates, and new-hire attrition within the first 90 days.",
+  },
+  "Manager Readiness": {
+    def: "Whether frontline managers are equipped to lead, coach, and retain their teams.",
+    method: "Manager training completion, direct-report engagement scores, and span-of-control ratios.",
+  },
+  "Communication": {
+    def: "How clearly information moves top-down, bottom-up, and across teams.",
+    method: "Survey sentiment on clarity and frequency, meeting-cadence adherence, and escalation resolution time.",
+  },
+  "Performance": {
+    def: "Whether performance expectations are clear and consistently evaluated.",
+    method: "Review completion rate, goal-setting participation, and rating-distribution skew.",
+  },
+  "Career Mobility": {
+    def: "How visible and accessible internal advancement paths are.",
+    method: "Internal fill rate, promotion velocity, and share of staff with a documented next-role path.",
+  },
+  "Retention": {
+    def: "Whether the org keeps the talent it develops.",
+    method: "Voluntary turnover rate, regretted-loss rate, and tenure-to-turnover correlation.",
+  },
+  "Service Delivery": {
+    def: "Whether workforce gaps are showing up in the org's actual output or service quality.",
+    method: "SLA / quality metrics, customer or patient satisfaction scores, and incident rate tied to staffing gaps.",
+  },
+  "Systems Friction": {
+    def: "How much manual process overhead is dragging on day-to-day work.",
+    method: "Tool fragmentation count, manual hand-off steps, and time-to-resolution on cross-system requests.",
+  },
+};
+
+const CURATED_ORGS = [
+  {
+    name: "Meridian Health Systems", sector: "Healthcare", lens: "Frontline & Emerging Leader Pipeline",
+    friction: 68, readiness: 54, band: "Moderate–High", entry: "2–3 week pilot",
+    categories: [
+      { cat: "Talent Attraction", score: 62 }, { cat: "Onboarding", score: 71 },
+      { cat: "Manager Readiness", score: 58 }, { cat: "Communication", score: 45 },
+      { cat: "Performance", score: 66 }, { cat: "Career Mobility", score: 39 },
+      { cat: "Retention", score: 54 }, { cat: "Service Delivery", score: 70 },
+      { cat: "Systems Friction", score: 48 },
+    ],
+    missions: ["Talent Magnet Audit", "First 90 Days Reset", "Accountability Architecture Sprint"],
+  },
+  {
+    name: "Alafaya Manufacturing Group", sector: "Manufacturing / Skilled Trades", lens: "Apprentice-to-Journeyman Pipeline",
+    friction: 74, readiness: 41, band: "High", entry: "Full diagnostic before pilot",
+    categories: [
+      { cat: "Talent Attraction", score: 55 }, { cat: "Onboarding", score: 48 },
+      { cat: "Manager Readiness", score: 62 }, { cat: "Communication", score: 51 },
+      { cat: "Performance", score: 60 }, { cat: "Career Mobility", score: 33 },
+      { cat: "Retention", score: 44 }, { cat: "Service Delivery", score: 58 },
+      { cat: "Systems Friction", score: 65 },
+    ],
+    missions: ["Accountability Architecture Sprint", "First 90 Days Reset", "Career Mobility Mapping"],
+  },
+  {
+    name: "Polk Regional Bank & Trust", sector: "Financial Services", lens: "Branch-to-Corporate Advancement",
+    friction: 51, readiness: 66, band: "Moderate", entry: "2–3 week pilot",
+    categories: [
+      { cat: "Talent Attraction", score: 70 }, { cat: "Onboarding", score: 74 },
+      { cat: "Manager Readiness", score: 68 }, { cat: "Communication", score: 63 },
+      { cat: "Performance", score: 72 }, { cat: "Career Mobility", score: 47 },
+      { cat: "Retention", score: 65 }, { cat: "Service Delivery", score: 77 },
+      { cat: "Systems Friction", score: 60 },
+    ],
+    missions: ["Talent Magnet Audit", "VOICE Protocol Session"],
+  },
+  {
+    name: "Debs Store Career Pathways (LIFT JAX)", sector: "Nonprofit Workforce Development", lens: "Participant Readiness → Placement",
+    friction: 79, readiness: 38, band: "High", entry: "Full diagnostic before pilot",
+    categories: [
+      { cat: "Talent Attraction", score: 44 }, { cat: "Onboarding", score: 52 },
+      { cat: "Manager Readiness", score: 40 }, { cat: "Communication", score: 35 },
+      { cat: "Performance", score: 49 }, { cat: "Career Mobility", score: 28 },
+      { cat: "Retention", score: 37 }, { cat: "Service Delivery", score: 55 },
+      { cat: "Systems Friction", score: 62 },
+    ],
+    missions: ["First 90 Days Reset", "Accountability Architecture Sprint", "Career Mobility Mapping"],
+  },
+  {
+    name: "Cascade Logistics & Freight", sector: "Transportation / Logistics", lens: "Driver & Warehouse Retention",
+    friction: 58, readiness: 60, band: "Moderate", entry: "2–3 week pilot",
+    categories: [
+      { cat: "Talent Attraction", score: 65 }, { cat: "Onboarding", score: 58 },
+      { cat: "Manager Readiness", score: 61 }, { cat: "Communication", score: 54 },
+      { cat: "Performance", score: 63 }, { cat: "Career Mobility", score: 42 },
+      { cat: "Retention", score: 46 }, { cat: "Service Delivery", score: 68 },
+      { cat: "Systems Friction", score: 50 },
+    ],
+    missions: ["Talent Magnet Audit", "Accountability Architecture Sprint"],
+  },
+];
+
+/* Seeded generator — deterministic so the list doesn't reshuffle on re-render */
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const SECTORS = [
+  "Healthcare", "Manufacturing / Skilled Trades", "Financial Services", "Nonprofit Workforce Development",
+  "Transportation / Logistics", "Retail", "Technology", "Government / Public Sector", "Education", "Hospitality",
+];
+const NAME_PREFIX = [
+  "Summit", "Harbor", "Ridgeline", "Union", "Vantage", "Northgate", "Cornerstone", "Beacon", "Anchor",
+  "Lakeside", "Copper", "Ironwood", "Crestview", "Fieldstone", "Brightpath", "Silver Oak", "Redwood",
+  "Fairview", "Granite", "Windgate", "Highland", "Riverbend", "Sable", "Wayfinder", "Bellwood",
+];
+const NAME_SUFFIX = [
+  "Health Systems", "Manufacturing Group", "Bank & Trust", "Logistics", "Partners", "Industries",
+  "Solutions", "Networks", "Holdings", "Alliance", "Group", "Services", "Systems", "Enterprises", "Co.",
+];
+const CATEGORY_NAMES = Object.keys(CATEGORY_DEFS);
+const LOWEST_TO_MISSION = {
+  "Talent Attraction": "Talent Magnet Audit", "Onboarding": "First 90 Days Reset",
+  "Manager Readiness": "Accountability Architecture Sprint", "Communication": "VOICE Protocol Session",
+  "Career Mobility": "Career Mobility Mapping", "Retention": "First 90 Days Reset",
+  "Performance": "Accountability Architecture Sprint", "Service Delivery": "Talent Magnet Audit",
+  "Systems Friction": "Accountability Architecture Sprint",
+};
+function bandFor(friction) {
+  return friction >= 72 ? "High" : friction >= 60 ? "Moderate–High" : friction >= 45 ? "Moderate" : "Low";
+}
+function generateMockOrgs(count, seed = 42) {
+  const rnd = mulberry32(seed);
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const sector = SECTORS[Math.floor(rnd() * SECTORS.length)];
+    const name = `${NAME_PREFIX[Math.floor(rnd() * NAME_PREFIX.length)]} ${NAME_SUFFIX[Math.floor(rnd() * NAME_SUFFIX.length)]}`;
+    const friction = Math.round(30 + rnd() * 60);
+    const readiness = Math.round(100 - friction * 0.75 + rnd() * 12 - 6);
+    const categories = CATEGORY_NAMES.map((cat) => ({
+      cat, score: Math.max(15, Math.min(95, Math.round(friction + (rnd() * 30 - 15)))),
+    }));
+    const sorted = [...categories].sort((a, b) => a.score - b.score);
+    const missions = [...new Set(sorted.slice(0, 3).map((c) => LOWEST_TO_MISSION[c.cat]))];
+    out.push({
+      name: `${name} ${i + 1}`, sector, lens: "Readiness → Placement Pipeline",
+      friction, readiness: Math.max(10, Math.min(95, readiness)), band: bandFor(friction),
+      entry: friction >= 72 ? "Full diagnostic before pilot" : "2–3 week pilot",
+      categories, missions,
+    });
+  }
+  return out;
+}
+
+const SIGNALSCAN_ORGS = [...CURATED_ORGS, ...generateMockOrgs(97)];
+
+const RADAR_ACCENT = LAYER["Individual"].color;
+const RADAR_CATEGORY_DEFS = [
+  { cat: "Ready-Now", color: "#7fd6c8", rule: "Score ≥ 4.0 AND trend ≥ 0", desc: "Already strong and holding or improving. Ready for placement, sponsorship, or next-stage advancement." },
+  { cat: "High-Potential", color: RADAR_ACCENT, rule: "Score 3.5–3.9 AND trend ≥ +0.3", desc: "Not at peak yet, but rising fast. Worth accelerating with visibility and stretch opportunities, not intervention." },
+  { cat: "At-Risk", color: "#e08791", rule: "Score < 2.8 OR trend ≤ −0.4", desc: "Either an absolute floor breach or a steep decline, regardless of starting point. Routes to Root Cause AI." },
+  { cat: "Developing", color: T.textDim, rule: "Everyone else (baseline)", desc: "No flag yet — tracked in Workforce Constellation™ but doesn't surface on the watchlist." },
+];
+const URGENCY_RULES = [
+  { level: "High", rule: "At-Risk AND (score < 2.5 OR trend ≤ −0.6)" },
+  { level: "Medium", rule: "At-Risk AND (2.5 ≤ score < 2.8, or −0.6 < trend ≤ −0.4) — or any High-Potential record" },
+  { level: "Low", rule: "Any Ready-Now record — visibility only, not a queue item" },
+];
+const RADAR_INPUTS = [
+  "Composite confidence score (1–5 scale, checkpoint self-assessment)",
+  "Trend = delta since previous checkpoint",
+  "Engagement rate (session attendance / assessment completion %)",
+  "Facilitator or manager check-in signal",
+];
+
+/* Classification — the actual rule logic behind the definitions shown in the UI */
+function classify(score, trend) {
+  if (score >= 4.0 && trend >= 0) return { category: "Ready-Now", urgency: "Low" };
+  if (score >= 3.5 && score < 4.0 && trend >= 0.3) return { category: "High-Potential", urgency: "Medium" };
+  if (score < 2.8 || trend <= -0.4) {
+    const urgency = (score < 2.5 || trend <= -0.6) ? "High" : "Medium";
+    return { category: "At-Risk", urgency };
+  }
+  return { category: "Developing", urgency: null };
+}
+
+const FIRST_NAMES = ["Devon", "Kwame", "Talia", "Marcus", "Aisha", "Jordan", "Priya", "Elena", "Malik", "Sofia", "Trevor", "Nia", "Carlos", "Brianna", "Omar", "Grace", "Xavier", "Layla", "Dominic", "Renee", "Isaiah", "Vanessa", "Miguel", "Simone", "Jamal", "Chloe", "Andre", "Kayla", "Felix", "Destiny"];
+const LAST_NAMES = ["Ramirez", "Osei", "Nguyen", "Whitfield", "Delgado", "Park", "Adeyemi", "Torres", "Bennett", "Okafor", "Reyes", "Coleman", "Vasquez", "Mensah", "Bryant", "Alvarez", "Simmons", "Chowdhury", "Reid", "Patel"];
+const COHORTS = ["Debs Store — Cohort 3", "SWEP 2026", "Emerging Leaders C1", "MetroHealth ADA EBRG", "Debs Store — Cohort 4"];
+
+function generateParticipants(count, seed = 7) {
+  const rnd = mulberry32(seed);
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const first = FIRST_NAMES[Math.floor(rnd() * FIRST_NAMES.length)];
+    const last = LAST_NAMES[Math.floor(rnd() * LAST_NAMES.length)];
+    // Skew toward the "Developing" middle band, like a real cohort distribution
+    const score = Math.round((2.0 + rnd() * 3.0) * 10) / 10;
+    const trend = Math.round((rnd() * 1.8 - 0.9) * 10) / 10;
+    const c = classify(score, trend);
+    out.push({
+      id: `gen-${i}`, name: `${first} ${last[0]}.`, cohort: COHORTS[Math.floor(rnd() * COHORTS.length)],
+      score, trend, category: c.category, urgency: c.urgency,
+    });
+  }
+  return out;
+}
+
+const ALL_PARTICIPANTS = generateParticipants(500);
+const FLAGGED = ALL_PARTICIPANTS.filter((p) => p.category !== "Developing");
+
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  return h;
+}
+
+/* The 6 readiness sub-categories from the LIFT JAX participant profile design
+   (Support Needs assessment is deliberately excluded — separate from the readiness score) */
+const PROFILE_CATEGORIES = ["Work Habits & Professionalism", "Communication", "Digital & AI Literacy", "Technical Skills", "Job Search Execution", "Career Pathway Clarity"];
+const PROFILE_CATEGORY_METHODS = {
+  "Work Habits & Professionalism": { instruments: "Attendance/punctuality log · facilitator behavioral rubric · self-assessment", formula: "Attendance (40%) + facilitator rubric (40%) + self-assessment (20%)", standardized: false },
+  "Communication": { instruments: "Structured mock-interview rubric · facilitator-observed discussion · self-assessment", formula: "Mock interview (50%) + facilitator observation (30%) + self-assessment (20%)", standardized: false },
+  "Digital & AI Literacy": { instruments: "Northstar Digital Literacy Assessment modules · AI-tool task", formula: "Northstar modules passed (80%) + AI-tool task (20%)", standardized: true },
+  "Technical Skills": { instruments: "Pathway credential completion (OSHA-10 / ServSafe / NCCER / CompTIA) · partner skills checklist", formula: "Credentials completed (60%) + skills rubric (40%)", standardized: false },
+  "Job Search Execution": { instruments: "Resume rubric · application-volume log · documented follow-up log", formula: "Resume rubric (40%) + application volume (30%) + follow-up log (30%)", standardized: false },
+  "Career Pathway Clarity": { instruments: "O*NET Interest Profiler (RIASEC) · coaching-session clarity rubric", formula: "Interest alignment (40%) + coach rubric (40%) + self-confidence (20%)", standardized: true },
+};
+
+const NEXT_STEP_MAP = {
+  "Work Habits & Professionalism": "Professionalism & Soft Skills Workshop",
+  "Communication": "Interview Skills Workshop",
+  "Digital & AI Literacy": "Digital Literacy Certification",
+  "Technical Skills": "Technical Skills Assessment Review",
+  "Job Search Execution": "Resume & Application Optimization",
+  "Career Pathway Clarity": "Career Pathway Coaching Session",
+};
+const STAGE_COLORS = { "Exploring": "#8b93a3", "Developing": "#c99a3a", "Referral-Ready": "#1f8f93", "Placement-Ready": "#1f9e6e" };
+function stageFor(readiness100) {
+  if (readiness100 >= 85) return "Placement-Ready";
+  if (readiness100 >= 65) return "Referral-Ready";
+  if (readiness100 >= 40) return "Developing";
+  return "Exploring";
+}
+const EMPLOYERS = ["Swisher", "JEA", "CSX", "Baptist Health"];
+
+/* Deterministic — same participant always builds the same profile, no reshuffling on re-render */
+function buildProfile(p) {
+  const rnd = mulberry32(hashStr(p.id || p.name));
+  const readiness100 = Math.max(8, Math.min(97, Math.round(p.score * 20 + (rnd() * 10 - 5))));
+  const stage = stageFor(readiness100);
+  const categories = PROFILE_CATEGORIES.map((cat) => ({
+    cat, score: Math.max(20, Math.min(98, Math.round(readiness100 + (rnd() * 30 - 15)))),
+  }));
+  const sortedAsc = [...categories].sort((a, b) => a.score - b.score);
+  const nextSteps = sortedAsc.slice(0, 3).map((c, i) => ({
+    task: NEXT_STEP_MAP[c.cat],
+    status: i === 0 ? "In Progress" : rnd() > 0.5 ? "Scheduled" : "Enrolled",
+  }));
+  const weakest = sortedAsc[0].cat, strongest = sortedAsc[sortedAsc.length - 1].cat;
+  const activity = [
+    { label: `Completed ${NEXT_STEP_MAP[strongest]}`, date: "May 20, 2026" },
+    { label: "Attended employer hiring event", date: "May 16, 2026" },
+    { label: "Reassessment completed", date: "May 15, 2026" },
+    { label: `Enrolled in ${NEXT_STEP_MAP[weakest]}`, date: "May 10, 2026" },
+  ];
+  const hired = stage === "Placement-Ready" && rnd() > 0.4;
+  const outcome = {
+    interviewed: Math.floor(rnd() * 3) + (stage === "Exploring" ? 0 : 1),
+    offers: hired ? 1 : stage === "Placement-Ready" ? 1 : 0,
+    hired,
+    startDate: hired ? "June 3, 2026" : null,
+    employer: hired ? EMPLOYERS[Math.floor(rnd() * EMPLOYERS.length)] : null,
+    wage: hired ? `$${(18 + rnd() * 4).toFixed(2)}/hr` : null,
+  };
+  return { readiness100, stage, categories, nextSteps, activity, outcome };
+}
+
+const WATCHLIST = [
+  { name: "D. Ramirez", cohort: "Debs Store — Cohort 3", category: "At-Risk", score: 2.4, trend: -0.6, urgency: "High" },
+  { name: "K. Osei", cohort: "SWEP 2026", category: "Ready-Now", score: 4.6, trend: 0.8, urgency: "Low" },
+  { name: "T. Nguyen", cohort: "Emerging Leaders C1", category: "High-Potential", score: 3.8, trend: 0.5, urgency: "Medium" },
+  { name: "A. Whitfield", cohort: "Debs Store — Cohort 3", category: "At-Risk", score: 2.1, trend: -0.9, urgency: "High" },
+  { name: "M. Delgado", cohort: "SWEP 2026", category: "Ready-Now", score: 4.4, trend: 0.3, urgency: "Low" },
+  { name: "J. Park", cohort: "Emerging Leaders C1", category: "High-Potential", score: 3.9, trend: 0.6, urgency: "Medium" },
+];
+
+const ROOT_CAUSE_RULES = [
+  { cond: "LinkedIn Presence Score ≤ 30", cause: "Digital Visibility Gap", route: "Talent Magnet Audit" },
+  { cond: "Confidence delta < 0 across 2 checkpoints", cause: "Engagement Erosion", route: "First 90 Days Reset" },
+  { cond: "Manager Check-in Rate < 50%", cause: "Sponsorship Gap", route: "Accountability Architecture Sprint" },
+  { cond: "Assessment Completion < 60% by Week 3", cause: "Program Friction", route: "Case Manager Escalation" },
+];
+
+const CONSTELLATION = [
+  { x: 82, y: 88, z: 12, name: "Ready-Now", fill: "#7fd6c8" },
+  { x: 45, y: 62, z: 14, name: "High-Potential", fill: "#c9a84c" },
+  { x: 28, y: 24, z: 10, name: "At-Risk", fill: "#d9707c" },
+  { x: 60, y: 40, z: 9, name: "Developing", fill: "#3f7fc4" },
+];
+
+const INTERVENTIONS = [
+  { name: "Talent Magnet Audit", rootCause: "Digital Visibility Gap", format: "Async toolkit + 1:1 review", owner: "Anne" },
+  { name: "First 90 Days Reset", rootCause: "Engagement Erosion", format: "Live workshop, 60 min", owner: "Jhen" },
+  { name: "Accountability Architecture Sprint", rootCause: "Sponsorship Gap", format: "Manager-facing playbook", owner: "Jhen" },
+  { name: "VOICE Protocol Session", rootCause: "Communication Friction", format: "Live workshop, 90 min", owner: "Jhen" },
+  { name: "Knowledge Transfer / Documentation Sprint", rootCause: "Sole-Source Knowledge Risk", format: "Structured documentation sessions, 4–6 weeks", owner: "Jhen" },
+  { name: "Reverse Mentoring Pairing", rootCause: "Conceptual Automation Gap", format: "Paired sessions — retiring expert teaches the 'why,' successor teaches the interface", owner: "Jhen" },
+];
+
+const FORECAST = [
+  { month: "M1", actual: 3.2, forecast: 3.2 }, { month: "M2", actual: 3.4, forecast: 3.5 },
+  { month: "M3", actual: 3.6, forecast: 3.7 }, { month: "M4", actual: null, forecast: 3.95 },
+  { month: "M5", actual: null, forecast: 4.15 }, { month: "M6", actual: null, forecast: 4.3 },
+];
+
+const MARKETPLACE = [
+  { title: "VOICE Protocol Facilitator Kit", partner: "Internal", type: "Curriculum" },
+  { title: "CLEAR Career Framework Workshop", partner: "Internal", type: "Curriculum" },
+  { title: "Manager Sponsorship Playbook", partner: "Internal", type: "Toolkit" },
+  { title: "LIFT JAX Debs Store Pathway Content", partner: "LIFT JAX", type: "Partner content" },
+  { title: "Budget Management Training", partner: "Internal", type: "Leadership Development" },
+  { title: "Executive Communication Workshop", partner: "Internal", type: "Leadership Development" },
+  { title: "Portfolio Management Certification", partner: "Internal", type: "Leadership Development" },
+  { title: "First-Time Manager Workshop", partner: "Internal", type: "Leadership Development" },
+  { title: "People Leadership Fundamentals", partner: "Internal", type: "Leadership Development" },
+  { title: "Advanced Financial Modeling", partner: "Internal", type: "Leadership Development" },
+];
+
+const CLIENTS = ["Siemens Energy — SWEP", "MetroHealth — ADA EBRG", "LIFT JAX — Debs Store"];
+
+/* ────────────────────────────────────────────────────────────
+   SHARED UI PIECES
+──────────────────────────────────────────────────────────── */
+function LayerBanner({ layer }) {
+  const l = LAYER[layer];
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
+      background: `${l.color}14`, border: `1px solid ${l.color}55`, borderLeft: `4px solid ${l.color}`,
+      borderRadius: 10, padding: "12px 18px", marginBottom: 22,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <CircleDot size={16} color={l.color} />
+        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, letterSpacing: "0.06em", textTransform: "uppercase", color: l.color, fontWeight: 600 }}>
+          You are viewing: {layer}
+        </span>
+      </div>
+      <span style={{ fontFamily: "Inter", fontSize: 12, color: T.textMute }}>{l.desc}</span>
+    </div>
+  );
+}
+
+function StagePill({ stage }) {
+  return (
+    <span style={{
+      fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, letterSpacing: "0.06em",
+      textTransform: "uppercase", color: STAGE[stage], background: `${STAGE[stage]}20`,
+      border: `1px solid ${STAGE[stage]}55`, borderRadius: 20, padding: "3px 9px",
+    }}>{stage}</span>
+  );
+}
+
+function ModePill({ mode }) {
+  const s = MODE_STYLE[mode];
+  return (
+    <span style={{
+      fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, letterSpacing: "0.04em",
+      color: s.fg, background: s.bg, border: `1px solid ${s.fg}33`, borderRadius: 20, padding: "3px 9px",
+    }}>{mode}</span>
+  );
+}
+
+function Card({ children, style, light, accentBar }) {
+  return (
+    <div style={{
+      background: light ? L.panel : T.panel, border: `1px solid ${light ? L.line : T.line}`, borderRadius: 16,
+      padding: "22px 24px",
+      boxShadow: light
+        ? accentBar ? `0 2px 24px rgba(0,0,0,0.4), 0 0 0 1px ${accentBar}22, 0 0 30px -8px ${accentBar}55` : "0 2px 20px rgba(0,0,0,0.35)"
+        : "0 2px 18px rgba(0,0,0,0.22)",
+      borderLeft: accentBar ? `3px solid ${accentBar}` : undefined, ...style,
+    }}>{children}</div>
+  );
+}
+
+function SectionLabel({ children, light }) {
+  return (
+    <div style={{
+      fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: "0.12em",
+      textTransform: "uppercase", color: light ? L.textDim : T.textDim, marginBottom: 12,
+    }}>{children}</div>
+  );
+}
+
+function ModuleHeader({ mod, accent, light }) {
+  const Icon = mod.icon;
+  const c = accent || T.gold;
+  const txt = light ? L.text : T.text;
+  const dim = light ? L.textDim : T.textDim;
+  return (
+    <>
+    <LayerBanner layer={mod.layer} />
+    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
+      <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+        <div style={{
+          width: 46, height: 46, borderRadius: 12, background: `${c}22`,
+          border: `1px solid ${c}66`, display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <Icon size={22} color={c} strokeWidth={1.75} />
+        </div>
+        <div>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 27, fontWeight: 700, color: txt, margin: 0 }}>
+            {mod.name}
+          </h1>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, color: dim, marginTop: 4 }}>
+            {mod.scope === "Pre-Engagement" ? "Pre-engagement · sales / lead-gen diagnostic" : "In-engagement · live client data"}
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <StagePill stage={mod.stage} />
+        <ModePill mode={mod.mode} />
+      </div>
+    </div>
+    </>
+  );
+}
+
+function Gauge({ value, label, color, light }) {
+  const r = 54, c = 2 * Math.PI * r, off = c - (value / 100) * c;
+  const trackColor = light ? L.line : T.line;
+  const textColor = light ? L.text : T.text;
+  const dimColor = light ? L.textDim : T.textDim;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <svg width={140} height={140} viewBox="0 0 140 140">
+        <circle cx={70} cy={70} r={r} fill="none" stroke={trackColor} strokeWidth={10} />
+        <circle cx={70} cy={70} r={r} fill="none" stroke={color} strokeWidth={10}
+          strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round"
+          transform="rotate(-90 70 70)" />
+        <text x={70} y={66} textAnchor="middle" fill={textColor} fontFamily="'Playfair Display', serif" fontSize={30} fontWeight={700}>{value}</text>
+        <text x={70} y={86} textAnchor="middle" fill={dimColor} fontFamily="'IBM Plex Mono', monospace" fontSize={10}>/ 100</text>
+      </svg>
+      <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: light ? L.textMute : T.textMute, marginTop: 6, textAlign: "center" }}>{label}</div>
+    </div>
+  );
+}
+
+function TrendTag({ v }) {
+  const Icon = v > 0 ? ArrowUpRight : v < 0 ? ArrowDownRight : Minus;
+  const c = v > 0 ? "#7fd6c8" : v < 0 ? "#e08791" : T.textDim;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, color: c, fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>
+      <Icon size={13} /> {Math.abs(v).toFixed(1)}
+    </span>
+  );
+}
+
+function DataNote({ children, light }) {
+  return (
+    <div style={{
+      fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: light ? L.textDim : T.textDim,
+      borderTop: `1px dashed ${light ? L.line : T.line}`, marginTop: 20, paddingTop: 14, lineHeight: 1.6,
+    }}>{children}</div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────
+   MODULE VIEWS
+──────────────────────────────────────────────────────────── */
+function SignalScanView({ mod }) {
+  const [selectedName, setSelectedName] = useState(SIGNALSCAN_ORGS[0].name);
+  const [search, setSearch] = useState("");
+  const [sectorFilter, setSectorFilter] = useState("All");
+  const [sortKey, setSortKey] = useState("friction");
+  const [sortDir, setSortDir] = useState("desc");
+  const [headcount, setHeadcount] = useState(200);
+
+  const org = SIGNALSCAN_ORGS.find((o) => o.name === selectedName) || SIGNALSCAN_ORGS[0];
+  const bandColor = org.band === "High" ? "#e08791" : org.band === "Moderate–High" ? "#d9707c" : org.band === "Moderate" ? T.gold : "#7fd6c8";
+
+  const sectors = ["All", ...new Set(SIGNALSCAN_ORGS.map((o) => o.sector))];
+  let list = SIGNALSCAN_ORGS.filter((o) =>
+    o.name.toLowerCase().includes(search.toLowerCase()) && (sectorFilter === "All" || o.sector === sectorFilter)
+  );
+  list = [...list].sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    if (sortKey === "name") return a.name.localeCompare(b.name) * dir;
+    return (a[sortKey] - b[sortKey]) * dir;
+  });
+
+  function toggleSort(key) {
+    if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("desc"); }
+  }
+
+  const colHeader = (label, key) => (
+    <div onClick={() => toggleSort(key)} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4, userSelect: "none" }}>
+      {label}{sortKey === key && <span style={{ color: T.gold }}>{sortDir === "asc" ? "↑" : "↓"}</span>}
+    </div>
+  );
+
+  return (
+    <div>
+      <ModuleHeader mod={mod} />
+
+      <Card style={{ marginBottom: 20 }}>
+        <SectionLabel>Scanned Organizations — {SIGNALSCAN_ORGS.length} mock orgs on file</SectionLabel>
+
+        <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+          <input
+            value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name…"
+            style={{
+              background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 8, padding: "8px 12px",
+              color: T.text, fontFamily: "Inter", fontSize: 12.5, flex: "1 1 200px", outline: "none",
+            }}
+          />
+          <select
+            value={sectorFilter} onChange={(e) => setSectorFilter(e.target.value)}
+            style={{
+              background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 8, padding: "8px 12px",
+              color: T.text, fontFamily: "Inter", fontSize: 12.5, outline: "none",
+            }}
+          >
+            {sectors.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+
+        <div style={{
+          display: "grid", gridTemplateColumns: "2fr 1.6fr 0.9fr 0.9fr 1fr", gap: 8,
+          fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: T.textDim, textTransform: "uppercase",
+          letterSpacing: "0.05em", padding: "0 10px 8px", borderBottom: `1px solid ${T.line}`,
+        }}>
+          {colHeader("Company", "name")}{colHeader("Sector", "sector")}{colHeader("Friction", "friction")}{colHeader("Readiness", "readiness")}<div>Band</div>
+        </div>
+
+        <div style={{ maxHeight: 340, overflowY: "auto" }}>
+          {list.map((o) => {
+            const bc = o.band === "High" ? "#e08791" : o.band === "Moderate–High" ? "#d9707c" : o.band === "Moderate" ? T.gold : "#7fd6c8";
+            const isSel = o.name === selectedName;
+            return (
+              <div key={o.name} onClick={() => setSelectedName(o.name)} style={{
+                display: "grid", gridTemplateColumns: "2fr 1.6fr 0.9fr 0.9fr 1fr", gap: 8, alignItems: "center",
+                padding: "10px 10px", borderBottom: `1px solid ${T.line}`, cursor: "pointer",
+                background: isSel ? T.goldSoft : "transparent",
+              }}>
+                <div style={{ fontFamily: "Inter", fontSize: 12.5, color: isSel ? T.gold : T.text, fontWeight: isSel ? 600 : 400 }}>{o.name}</div>
+                <div style={{ fontFamily: "Inter", fontSize: 11.5, color: T.textMute }}>{o.sector}</div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: T.text }}>{o.friction}</div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: T.text }}>{o.readiness}</div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: bc }}>{o.band}</div>
+              </div>
+            );
+          })}
+          {list.length === 0 && (
+            <div style={{ padding: "20px 10px", fontFamily: "Inter", fontSize: 12.5, color: T.textDim }}>No orgs match that search / filter.</div>
+          )}
+        </div>
+        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: T.textDim, marginTop: 10 }}>
+          Showing {list.length} of {SIGNALSCAN_ORGS.length} · click a row to load its scan below
+        </div>
+      </Card>
+
+      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 24, marginBottom: 20 }}>
+        <Card style={{ display: "flex", gap: 28, alignItems: "center" }}>
+          <Gauge value={org.friction} label="Workforce Friction Index™" color="#d9707c" />
+          <Gauge value={org.readiness} label="Readiness Score" color={T.gold} />
+        </Card>
+        <Card>
+          <SectionLabel>Scanned Org</SectionLabel>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: T.text, marginBottom: 6 }}>{org.name}</div>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: T.textMute, lineHeight: 1.7 }}>
+            Sector: {org.sector} · Lens: {org.lens}<br />
+            Friction band: <span style={{ color: bandColor }}>{org.band}</span> · Recommended entry: {org.entry}
+          </div>
+        </Card>
+      </div>
+      <Card style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4, flexWrap: "wrap", gap: 10 }}>
+          <SectionLabel>Friction by Category — what it measures, and what it costs</SectionLabel>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.textDim }}>Headcount</span>
+            <input type="number" value={headcount} onChange={(e) => setHeadcount(Math.max(1, Number(e.target.value) || 1))}
+              style={{ width: 70, background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 6, padding: "5px 8px", color: T.text, fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }} />
+          </div>
+        </div>
+        {org.categories.map((c, i) => {
+          const d = CATEGORY_DEFS[c.cat];
+          const cm = COST_MODEL[c.cat];
+          const drag = dragPerEmployee(c.cat, c.score);
+          const barColor = c.score < 45 ? "#e08791" : c.score < 60 ? T.gold : "#7fd6c8";
+          return (
+            <div key={c.cat} style={{ padding: "16px 2px", borderBottom: i < org.categories.length - 1 ? `1px solid ${T.line}` : "none" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 12, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 13.5, color: T.text }}>{c.cat}</div>
+                  <span style={{
+                    fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, letterSpacing: "0.04em",
+                    color: cm.status === "Cited" ? "#7fd6c8" : "#d99b4a", background: cm.status === "Cited" ? "rgba(127,214,200,0.12)" : "rgba(217,155,74,0.12)",
+                    border: `1px solid ${cm.status === "Cited" ? "#7fd6c8" : "#d99b4a"}44`, borderRadius: 20, padding: "2px 7px", textTransform: "uppercase",
+                  }}>{cm.status}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 90, height: 6, borderRadius: 99, background: T.line, overflow: "hidden" }}>
+                    <div style={{ width: `${c.score}%`, height: "100%", background: barColor, borderRadius: 99 }} />
+                  </div>
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, fontWeight: 600, color: barColor, minWidth: 30, textAlign: "right" }}>{c.score}</span>
+                </div>
+              </div>
+              <div style={{ fontFamily: "Inter", fontSize: 12.5, color: T.textMute, lineHeight: 1.5, marginBottom: 4 }}>{d.def}</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.textDim, lineHeight: 1.6, marginBottom: 6 }}>Scored on: {d.method}</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 8, padding: "8px 12px", marginTop: 4 }}>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: T.textDim }}>{cm.mechanism}</span>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 600, color: T.gold }}>
+                  ${drag.toLocaleString()}/employee/yr · ${(drag * headcount).toLocaleString()} org total
+                </span>
+              </div>
+            </div>
+          );
+        })}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, paddingTop: 16, borderTop: `1px solid ${T.gold}55` }}>
+          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, color: T.textMute, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Estimated total drag across all 9 categories ({headcount} employees)
+          </span>
+          <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: T.gold }}>
+            ${(org.categories.reduce((sum, c) => sum + dragPerEmployee(c.cat, c.score), 0) * headcount).toLocaleString()}/yr
+          </span>
+        </div>
+      </Card>
+      <Card>
+        <SectionLabel>Recommended ORBIT Missions</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px,1fr))", gap: 14 }}>
+          {org.missions.map((m) => (
+            <div key={m} style={{ background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 10, padding: 14 }}>
+              <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 13.5, color: T.text }}>{m}</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.textDim, marginTop: 6 }}>→ routes to Intervention Marketplace</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <DataNote>Generates the lead. Sits outside the in-engagement loop — output here does not feed Talent Radar™ directly; a signed engagement does.</DataNote>
+    </div>
+  );
+}
+
+function ProfileCard({ p, onBack }) {
+  const prof = buildProfile(p);
+  const stageColor = STAGE_COLORS[prof.stage];
+  const initials = p.name.split(/[\s.]+/).filter(Boolean).map((x) => x[0]).join("").slice(0, 2).toUpperCase();
+  return (
+    <Card light accentBar={stageColor} style={{ marginBottom: 20 }}>
+      <button onClick={onBack} style={{
+        background: "none", border: "none", color: L.accent, fontFamily: "'IBM Plex Mono', monospace",
+        fontSize: 11.5, cursor: "pointer", padding: 0, marginBottom: 18,
+      }}>← Back to watchlist</button>
+
+      <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap", marginBottom: 24 }}>
+        <div style={{
+          width: 66, height: 66, borderRadius: 99, background: `${stageColor}22`, border: `2px solid ${stageColor}88`,
+          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+        }}>
+          <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: stageColor }}>{initials}</span>
+        </div>
+        <div style={{ flex: "1 1 200px" }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: L.text }}>{p.name}</div>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, color: L.textDim, marginTop: 3 }}>ID: {(p.id || "curated").toUpperCase()} · {p.cohort}</div>
+        </div>
+        <span style={{
+          fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, fontWeight: 700, color: "#fff",
+          background: stageColor, borderRadius: 20, padding: "6px 14px",
+        }}>{prof.stage}</span>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 24, marginBottom: 20, alignItems: "start" }}>
+        <Gauge value={prof.readiness100} label="Readiness Score" color={stageColor} light />
+        <div style={{ background: L.panelAlt, border: `1px solid ${L.line}`, borderRadius: 12, padding: "16px 18px" }}>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: L.textDim, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>Readiness Breakdown</div>
+          {prof.categories.map((c) => {
+            const barColor = c.score < 45 ? L.red : c.score < 65 ? L.amber : "#1f9e6e";
+            const m = PROFILE_CATEGORY_METHODS[c.cat];
+            return (
+              <div key={c.cat} style={{ marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${L.line}` }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <span style={{ fontFamily: "Inter", fontSize: 12, color: L.text, fontWeight: 500 }}>{c.cat}</span>
+                    <span style={{
+                      fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, letterSpacing: "0.03em",
+                      color: m.standardized ? "#1f9e6e" : L.amber, background: m.standardized ? "rgba(31,158,110,0.12)" : "rgba(169,130,47,0.12)",
+                      border: `1px solid ${m.standardized ? "#1f9e6e" : L.amber}44`, borderRadius: 20, padding: "1px 7px", textTransform: "uppercase",
+                    }}>{m.standardized ? "Standardized" : "Custom rubric"}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "0 0 auto" }}>
+                    <div style={{ width: 70, height: 6, borderRadius: 99, background: L.line, overflow: "hidden" }}>
+                      <div style={{ width: `${c.score}%`, height: "100%", background: barColor, borderRadius: 99 }} />
+                    </div>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: barColor, minWidth: 24, textAlign: "right" }}>{c.score}</span>
+                  </div>
+                </div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: L.textDim, lineHeight: 1.5 }}>Scored via: {m.instruments}</div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: L.textDim, lineHeight: 1.5 }}>Formula: {m.formula}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px,1fr))", gap: 16 }}>
+        <div>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: L.textDim, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Next Steps</div>
+          {prof.nextSteps.map((s, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: i < prof.nextSteps.length - 1 ? `1px solid ${L.line}` : "none" }}>
+              <span style={{ fontFamily: "Inter", fontSize: 12, color: L.text }}>{s.task}</span>
+              <span style={{
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: L.textMute, background: L.panelAlt,
+                border: `1px solid ${L.line}`, borderRadius: 20, padding: "2px 8px", whiteSpace: "nowrap",
+              }}>{s.status}</span>
+            </div>
+          ))}
+        </div>
+        <div>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: L.textDim, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Recent Activity</div>
+          {prof.activity.map((a, i) => (
+            <div key={i} style={{ display: "flex", gap: 8, alignItems: "baseline", marginBottom: 8 }}>
+              <span style={{ width: 5, height: 5, borderRadius: 99, background: L.accent, flexShrink: 0, marginTop: 5 }} />
+              <div>
+                <div style={{ fontFamily: "Inter", fontSize: 12, color: L.text, lineHeight: 1.4 }}>{a.label}</div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: L.textDim }}>{a.date}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: L.textDim, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Outcome History</div>
+          <div style={{ fontFamily: "Inter", fontSize: 12, color: L.textMute, lineHeight: 1.9 }}>
+            Interviewed: <b style={{ color: L.text }}>{prof.outcome.interviewed}</b><br />
+            Offers: <b style={{ color: L.text }}>{prof.outcome.offers}</b><br />
+            Hired: <b style={{ color: prof.outcome.hired ? "#1f9e6e" : L.text }}>{prof.outcome.hired ? "Yes" : "Not yet"}</b>
+            {prof.outcome.hired && (
+              <>
+                <br />Start: <b style={{ color: L.text }}>{prof.outcome.startDate}</b>
+                <br />Employer: <b style={{ color: L.text }}>{prof.outcome.employer}</b>
+                <br />Wage: <b style={{ color: L.text }}>{prof.outcome.wage}</b>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/* Employee Succession — a different use case than program participants: existing
+   corporate employees being groomed for promotion, not workforce-program readiness. */
+const SUCCESSION_STAGES = [
+  { stage: "Identify", desc: "High-potential employees flagged for pipeline entry", count: 142 },
+  { stage: "Develop", desc: "Building skills & experience toward the target role", count: 73 },
+  { stage: "Advance", desc: "Ready for next-level scope and responsibility", count: 31 },
+  { stage: "Ready Now", desc: "Ready to transition into the target role", count: 16 },
+];
+const HIRED_PROMOTED_THIS_QUARTER = 24;
+const SUCCESSION_KPIS = [
+  { label: "Total Pipeline Roles", value: "48", sub: "↑ 8 vs last quarter" },
+  { label: "Ready Now", value: "16", sub: "33% of pipeline" },
+  { label: "In Development", value: "22", sub: "46% of pipeline" },
+  { label: "Emerging Talent", value: "10", sub: "21% of pipeline" },
+  { label: "Pipeline Strength", value: "78%", sub: "↑ 9% vs last quarter" },
+  { label: "Avg. Time to Ready", value: "9.2 mo", sub: "" },
+];
+const SUCCESSION_CANDIDATES = [
+  {
+    id: "s1", name: "Marcus Johnson", dept: "IT", currentRole: "Senior Systems Analyst", targetRole: "IT Manager",
+    stage: "Ready Now", readiness: 92, timeToReady: "1–3 months",
+    strengths: ["Strong technical leadership", "Proven project success", "High performance track record", "Great cross-functional partner"],
+    gaps: [{ skill: "Budgeting & Financial Mgmt.", severity: "Intermediate" }, { skill: "Strategic Planning", severity: "Intermediate" }],
+    nextSteps: [{ task: "Budget Management Training", due: "Due in 30 days" }, { task: "Lead Enterprise Project", due: "Due in 60 days" }, { task: "Executive Communication Workshop", due: "Due in 90 days" }],
+  },
+  {
+    id: "s2", name: "Aaliyah Carter", dept: "Operations", currentRole: "Project Manager", targetRole: "Sr. Program Manager",
+    stage: "Advance", readiness: 86, timeToReady: "3–6 months",
+    strengths: ["Cross-functional coordination", "Stakeholder communication", "On-time delivery record"],
+    gaps: [{ skill: "Portfolio-Level Planning", severity: "Developing" }],
+    nextSteps: [{ task: "Portfolio Management Certification", due: "Due in 45 days" }, { task: "Shadow Sr. Program Manager", due: "Due in 90 days" }],
+  },
+  {
+    id: "s3", name: "Daniel Brooks", dept: "Engineering", currentRole: "Mechanical Engineer", targetRole: "Engineering Manager",
+    stage: "Advance", readiness: 82, timeToReady: "6–9 months",
+    strengths: ["Technical depth", "Mentoring junior engineers", "Process improvement"],
+    gaps: [{ skill: "People Management", severity: "Developing" }, { skill: "Budget Ownership", severity: "Early" }],
+    nextSteps: [{ task: "First-Time Manager Workshop", due: "Due in 30 days" }, { task: "Lead a Direct Report", due: "Due in 120 days" }],
+  },
+  {
+    id: "s4", name: "Taylor Williams", dept: "Human Resources", currentRole: "HR Business Partner", targetRole: "HR Manager",
+    stage: "Develop", readiness: 74, timeToReady: "9–12 months",
+    strengths: ["Employee relations", "Policy design", "Trusted advisor reputation"],
+    gaps: [{ skill: "Team Leadership", severity: "Early" }, { skill: "Workforce Planning", severity: "Developing" }],
+    nextSteps: [{ task: "People Leadership Fundamentals", due: "Due in 30 days" }, { task: "Cross-Functional Project Lead", due: "Due in 90 days" }],
+  },
+  {
+    id: "s5", name: "Christopher Moore", dept: "Finance", currentRole: "Financial Analyst", targetRole: "Sr. Financial Analyst",
+    stage: "Develop", readiness: 68, timeToReady: "9–12 months",
+    strengths: ["Modeling accuracy", "Attention to detail", "Cross-team collaboration"],
+    gaps: [{ skill: "Executive Presentation", severity: "Early" }, { skill: "Strategic Forecasting", severity: "Developing" }],
+    nextSteps: [{ task: "Advanced Financial Modeling", due: "Due in 45 days" }, { task: "Present to Leadership", due: "Due in 90 days" }],
+  },
+];
+const SUCCESSION_STAGE_COLORS = { "Identify": "#8b93a3", "Develop": "#c99a3a", "Advance": "#1f8f93", "Ready Now": "#1f9e6e" };
+
+function SuccessionPipelineView() {
+  const [selected, setSelected] = useState(SUCCESSION_CANDIDATES[0].id);
+  const c = SUCCESSION_CANDIDATES.find((x) => x.id === selected);
+  const stageColor = SUCCESSION_STAGE_COLORS[c.stage];
+
+  return (
+    <div>
+      <Card light accentBar={L.accent} style={{ marginBottom: 20 }}>
+        <SectionLabel light>Pipeline Health</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px,1fr))", gap: 12 }}>
+          {SUCCESSION_KPIS.map((k) => (
+            <div key={k.label} style={{ background: L.panelAlt, border: `1px solid ${L.line}`, borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: L.text }}>{k.value}</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: L.textDim, textTransform: "uppercase", marginTop: 3 }}>{k.label}</div>
+              {k.sub && <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: L.accent, marginTop: 2 }}>{k.sub}</div>}
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card light accentBar={L.accent} style={{ marginBottom: 20 }}>
+        <SectionLabel light>Pipeline Flow</SectionLabel>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "stretch" }}>
+          {SUCCESSION_STAGES.map((s, i) => (
+            <div key={s.stage} style={{ display: "flex", alignItems: "center", flex: "1 1 160px", gap: 10 }}>
+              <div style={{
+                flex: 1, background: `${SUCCESSION_STAGE_COLORS[s.stage]}18`, border: `1px solid ${SUCCESSION_STAGE_COLORS[s.stage]}55`,
+                borderRadius: 10, padding: "12px 14px",
+              }}>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: SUCCESSION_STAGE_COLORS[s.stage], marginBottom: 4 }}>{i + 1}. {s.stage}</div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: L.text }}>{s.count}</div>
+                <div style={{ fontFamily: "Inter", fontSize: 10.5, color: L.textMute, marginTop: 3, lineHeight: 1.3 }}>{s.desc}</div>
+              </div>
+              {i < SUCCESSION_STAGES.length - 1 && <ChevronRight size={16} color={L.textDim} style={{ flexShrink: 0 }} />}
+            </div>
+          ))}
+          <div style={{ flex: "0 0 140px", background: L.panelAlt, border: `1px solid ${L.line}`, borderRadius: 10, padding: "12px 14px" }}>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: L.textDim, marginBottom: 4 }}>Hired / Promoted</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: "#1f9e6e" }}>{HIRED_PROMOTED_THIS_QUARTER}</div>
+            <div style={{ fontFamily: "Inter", fontSize: 10.5, color: L.textMute, marginTop: 3 }}>Moved into new roles this quarter</div>
+          </div>
+        </div>
+      </Card>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20, alignItems: "start" }}>
+        <Card light accentBar={L.accent}>
+          <SectionLabel light>Top Pipeline Candidates</SectionLabel>
+          {SUCCESSION_CANDIDATES.map((cand) => (
+            <div key={cand.id} onClick={() => setSelected(cand.id)} style={{
+              display: "flex", alignItems: "center", gap: 12, padding: "12px 8px", borderRadius: 10, cursor: "pointer",
+              background: cand.id === selected ? L.panelAlt : "transparent", borderBottom: `1px solid ${L.line}`,
+            }}>
+              <span style={{ width: 8, height: 8, borderRadius: 99, background: SUCCESSION_STAGE_COLORS[cand.stage], flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: "Inter", fontSize: 13, fontWeight: cand.id === selected ? 600 : 400, color: cand.id === selected ? L.accent : L.text }}>{cand.name}</div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: L.textDim }}>{cand.currentRole} → {cand.targetRole}</div>
+              </div>
+              <span style={{
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: SUCCESSION_STAGE_COLORS[cand.stage],
+                background: `${SUCCESSION_STAGE_COLORS[cand.stage]}18`, border: `1px solid ${SUCCESSION_STAGE_COLORS[cand.stage]}44`,
+                borderRadius: 20, padding: "3px 9px", whiteSpace: "nowrap",
+              }}>{cand.stage}</span>
+              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 600, color: L.text, minWidth: 30, textAlign: "right" }}>{cand.readiness}</span>
+            </div>
+          ))}
+        </Card>
+
+        <Card light accentBar={stageColor}>
+          <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 16 }}>
+            <div style={{
+              width: 50, height: 50, borderRadius: 99, background: `${stageColor}22`, border: `2px solid ${stageColor}88`,
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+            }}>
+              <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, fontWeight: 700, color: stageColor }}>{c.name.split(" ").map((x) => x[0]).join("")}</span>
+            </div>
+            <div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, fontWeight: 700, color: L.text }}>{c.name}</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: L.textDim }}>{c.currentRole}, {c.dept}</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: L.panelAlt, border: `1px solid ${L.line}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
+            <div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: L.textDim, textTransform: "uppercase" }}>Target Role</div>
+              <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 13, color: L.text }}>{c.targetRole}</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: stageColor }}>{c.readiness}%</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: L.textDim }}>Readiness</div>
+            </div>
+            <div style={{ textAlign: "center", borderLeft: `1px solid ${L.line}`, paddingLeft: 14 }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: L.text }}>{c.timeToReady}</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: L.textDim }}>Time to Ready</div>
+            </div>
+          </div>
+
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: L.accent, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Development Plan</div>
+
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: L.textDim, textTransform: "uppercase", marginBottom: 8 }}>Why they're a great fit</div>
+            {c.strengths.map((s) => (
+              <div key={s} style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 5 }}>
+                <CheckCircle2 size={13} color="#1f9e6e" />
+                <span style={{ fontFamily: "Inter", fontSize: 12, color: L.text }}>{s}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: L.textDim, textTransform: "uppercase", marginBottom: 8 }}>Skills Gaps</div>
+            {c.gaps.map((g) => (
+              <div key={g.skill} style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                <span style={{ fontFamily: "Inter", fontSize: 12, color: L.text }}>{g.skill}</span>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: L.amber }}>{g.severity}</span>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: L.textDim, textTransform: "uppercase", marginBottom: 8 }}>Recommended Next Steps</div>
+            {c.nextSteps.map((n) => (
+              <div key={n.task} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${L.line}` }}>
+                <span style={{ fontFamily: "Inter", fontSize: 12, color: L.text }}>{n.task}</span>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: L.textDim }}>{n.due}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+      <DataNote light>Employee Succession is a different use case than program participants — existing corporate employees being groomed for promotion, not workforce-readiness scoring. Same Individual layer, same module, different lens.</DataNote>
+    </div>
+  );
+}
+
+/* Knowledge Continuity — a different risk than promotion-readiness: what disappears when
+   tenured staff retire, especially those who hold BOTH the legacy manual process AND the
+   automation logic that replaced it. Illustrative department (Corporate Accounting & Finance
+   Automation), inspired by a real pattern, not modeling any actual named company. */
+const AGE_BANDS = [
+  { band: "<30", count: 8 }, { band: "30–39", count: 6 }, { band: "40–44", count: 4 },
+  { band: "45–50", count: 14 }, { band: "51–55", count: 7 }, { band: "56–60", count: 3 }, { band: "60+", count: 2 },
+];
+const KNOWLEDGE_CRIT_COLORS = { "Sole-Source": "#c1505c", "High": "#a9822f", "Medium": "#1f8f93", "Low": "#8b8674" };
+const KNOWLEDGE_HOLDERS = [
+  {
+    id: "k1", name: "Patricia Reyes", role: "Senior Accountant", tenure: 32, retirementYears: 2,
+    criticality: "Sole-Source", dualEra: true, transferStatus: "Not Started",
+    knowledge: "Built the RPA bot that replaced manual month-end reconciliation — the only person who knows why it's configured the way it is.",
+    successorId: "s1",
+  },
+  {
+    id: "k2", name: "Robert Kim", role: "Principal Accountant", tenure: 35, retirementYears: 1,
+    criticality: "Sole-Source", dualEra: true, transferStatus: "Documenting",
+    knowledge: "Designed the automated close process and the manual override procedure for when it fails — override logic isn't written down anywhere.",
+    successorId: "s2",
+  },
+  {
+    id: "k3", name: "Linda Foster", role: "Senior Accountant", tenure: 24, retirementYears: 8,
+    criticality: "High", dualEra: true, transferStatus: "Shadowing",
+    knowledge: "Co-built the intercompany allocation automation; understands both the old spreadsheet logic and the new system.",
+    successorId: null,
+  },
+  {
+    id: "k4", name: "James Whitfield", role: "Accounting Manager", tenure: 20, retirementYears: 10,
+    criticality: "High", dualEra: false, transferStatus: "N/A",
+    knowledge: "Deep process knowledge, joined after automation was already in place — not a dual-era risk.",
+    successorId: null,
+  },
+];
+const KNOWLEDGE_SUCCESSORS = {
+  s1: { id: "s1", name: "Sarah Chen", role: "Staff Accountant", tenure: 3, conceptualGap: "High", note: "Can run the reconciliation bot end-to-end but has never had to diagnose why it produced a wrong number." },
+  s2: { id: "s2", name: "Marcus Diallo", role: "Staff Accountant", tenure: 4, conceptualGap: "High", note: "Operates the close automation daily; has never executed the manual override and doesn't know when one is needed." },
+  s3: { id: "s3", name: "Priya Patel", role: "Staff Accountant", tenure: 2, conceptualGap: "Medium", note: "Handles the current intercompany allocation system well but has no exposure to the legacy spreadsheet logic it replaced." },
+};
+
+/* Team structure — 1 senior manager, 3 managers, 15 direct reports each.
+   Knowledge holders and their matched early-tenure successor are placed
+   on the same team so the pairing is a real reporting relationship, not
+   just a suggestion floating outside the org chart. */
+const SENIOR_MANAGER = { name: "Diane Whitfield", title: "VP, Corporate Accounting & Finance Automation" };
+function genFiller(seed, n) {
+  const rnd = mulberry32(seed);
+  return Array.from({ length: n }, (_, i) => {
+    const first = FIRST_NAMES[Math.floor(rnd() * FIRST_NAMES.length)];
+    const last = LAST_NAMES[Math.floor(rnd() * LAST_NAMES.length)];
+    const tenure = Math.round(1 + rnd() * 12);
+    return { id: `fill-${seed}-${i}`, name: `${first} ${last[0]}.`, role: tenure > 8 ? "Senior Accountant" : tenure > 3 ? "Staff Accountant II" : "Staff Accountant I", tenure, featured: null };
+  });
+}
+const MANAGER_TEAMS = [
+  {
+    id: "mgr1", name: "James Whitfield", title: "Accounting Manager", team: "General Ledger & Reporting",
+    pair: { holder: KNOWLEDGE_HOLDERS[2], match: KNOWLEDGE_SUCCESSORS.s3 }, // Linda Foster + Priya Patel
+    filler: genFiller(501, 13),
+  },
+  {
+    id: "mgr2", name: "Angela Torres", title: "Manager, Reconciliation & Controls", team: "Reconciliation & Controls",
+    pair: { holder: KNOWLEDGE_HOLDERS[0], match: KNOWLEDGE_SUCCESSORS.s1 }, // Patricia Reyes + Sarah Chen
+    filler: genFiller(502, 13),
+  },
+  {
+    id: "mgr3", name: "Brian Osei", title: "Manager, Financial Close & Automation", team: "Financial Close & Automation",
+    pair: { holder: KNOWLEDGE_HOLDERS[1], match: KNOWLEDGE_SUCCESSORS.s2 }, // Robert Kim + Marcus Diallo
+    filler: genFiller(503, 13),
+  },
+];
+KNOWLEDGE_HOLDERS[2].successorId = "s3"; // wire Linda's match into the same data other views already read
+const SOLE_SOURCE = KNOWLEDGE_HOLDERS.filter((k) => k.criticality === "Sole-Source");
+const RETIRING_1YR = SOLE_SOURCE.filter((k) => k.retirementYears <= 1).length;
+const RETIRING_3YR = SOLE_SOURCE.filter((k) => k.retirementYears <= 3).length;
+const RETIRING_5YR = SOLE_SOURCE.filter((k) => k.retirementYears <= 5).length;
+const DUAL_ERA_COUNT = KNOWLEDGE_HOLDERS.filter((k) => k.dualEra).length;
+const TRANSFER_COVERAGE = Math.round(
+  (100 * KNOWLEDGE_HOLDERS.filter((k) => k.transferStatus !== "Not Started" && k.transferStatus !== "N/A").length)
+  / KNOWLEDGE_HOLDERS.filter((k) => k.transferStatus !== "N/A").length
+);
+
+function KnowledgeContinuityView() {
+  const maxBand = Math.max(...AGE_BANDS.map((b) => b.count));
+  return (
+    <div>
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: L.text, display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+          ORBIT KCE<span style={{ fontSize: 13, verticalAlign: "super" }}>™</span>
+          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: L.textDim, fontWeight: 400 }}>Knowledge Continuity Engine</span>
+        </div>
+        <div style={{ fontFamily: "Inter", fontSize: 12.5, color: L.textMute, marginTop: 4 }}>
+          What disappears when tenured staff retire — especially the people who hold both the legacy process and the automation that replaced it.
+        </div>
+      </div>
+      <Card light accentBar={L.red} style={{ marginBottom: 20 }}>
+        <SectionLabel light>Knowledge Risk Overview</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px,1fr))", gap: 12 }}>
+          {[
+            { label: "Sole-Source Holders", value: SOLE_SOURCE.length, color: L.red },
+            { label: "Retiring within 1 yr", value: RETIRING_1YR, color: L.red },
+            { label: "Retiring within 3 yrs", value: RETIRING_3YR, color: L.amber },
+            { label: "Retiring within 5 yrs", value: RETIRING_5YR, color: L.amber },
+            { label: "Dual-Era Holders", value: DUAL_ERA_COUNT, color: L.accent },
+            { label: "Transfer Coverage", value: `${TRANSFER_COVERAGE}%`, color: TRANSFER_COVERAGE >= 60 ? "#1f9e6e" : L.red },
+          ].map((s) => (
+            <div key={s.label} style={{ background: L.panelAlt, border: `1px solid ${L.line}`, borderRadius: 10, padding: "12px 14px" }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: s.color }}>{s.value}</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: L.textDim, textTransform: "uppercase", marginTop: 3, lineHeight: 1.3 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card light accentBar={L.accent} style={{ marginBottom: 20 }}>
+        <SectionLabel light>Experience Distribution — the bottleneck and the gap beneath it</SectionLabel>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 140, marginBottom: 8 }}>
+          {AGE_BANDS.map((b) => {
+            const isBottleneck = b.band === "45–50";
+            const isGap = b.band === "30–39" || b.band === "40–44";
+            const color = isBottleneck ? L.red : isGap ? L.amber : L.accent;
+            return (
+              <div key={b.band} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: L.text, fontWeight: 600, marginBottom: 4 }}>{b.count}</span>
+                <div style={{ width: "100%", height: `${(b.count / maxBand) * 100}%`, background: color, borderRadius: "4px 4px 0 0", opacity: 0.85 }} />
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          {AGE_BANDS.map((b) => (
+            <div key={b.band} style={{ flex: 1, textAlign: "center", fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: L.textDim }}>{b.band}</div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 16, marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${L.line}`, flexWrap: "wrap", fontFamily: "Inter", fontSize: 12, color: L.textMute, lineHeight: 1.5 }}>
+          <span><span style={{ color: L.red, fontWeight: 600 }}>■</span> 45–50 is the concentration — the bottleneck</span>
+          <span><span style={{ color: L.amber, fontWeight: 600 }}>■</span> 30–44 is thin — not enough people positioned to absorb what 45–50 knows</span>
+        </div>
+      </Card>
+
+      <Card light accentBar={L.accent} style={{ marginTop: 20 }}>
+        <SectionLabel light>Team Structure & Succession Matching</SectionLabel>
+        <div style={{ fontFamily: "Inter", fontSize: 12.5, color: L.textMute, marginBottom: 20, lineHeight: 1.5 }}>
+          1 senior manager, 3 managers, 15 direct reports each — dual-era holders and their matched early-tenure successor placed on the same team, not just paired on paper.
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 4 }}>
+          <div style={{ background: L.panelAlt, border: `2px solid ${L.accent}`, borderRadius: 12, padding: "12px 24px", textAlign: "center" }}>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: L.text }}>{SENIOR_MANAGER.name}</div>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: L.textDim, marginTop: 2 }}>{SENIOR_MANAGER.title}</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <div style={{ width: 1, height: 20, background: L.line }} />
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+          {MANAGER_TEAMS.map((mgr) => (
+            <div key={mgr.id}>
+              <div style={{ height: 20, borderTop: `1px solid ${L.line}` }} />
+              <div style={{ background: L.panelAlt, border: `1.5px solid ${L.line}`, borderRadius: 10, padding: "10px 12px", textAlign: "center", marginBottom: 12 }}>
+                <div style={{ fontFamily: "Inter", fontWeight: 700, fontSize: 12.5, color: L.text }}>{mgr.name}</div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: L.textDim, marginTop: 2, lineHeight: 1.3 }}>{mgr.title}</div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: L.accent, marginTop: 3 }}>{mgr.team} · 15 reports</div>
+              </div>
+
+              {/* Featured pairing: dual-era holder ↔ matched successor */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                <div style={{ flex: 1, background: `${KNOWLEDGE_CRIT_COLORS[mgr.pair.holder.criticality]}18`, border: `1.5px solid ${KNOWLEDGE_CRIT_COLORS[mgr.pair.holder.criticality]}66`, borderRadius: 8, padding: "8px 8px", textAlign: "center" }}>
+                  <div style={{ fontFamily: "Inter", fontWeight: 700, fontSize: 10.5, color: L.text }}>{mgr.pair.holder.name}</div>
+                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 8.5, color: KNOWLEDGE_CRIT_COLORS[mgr.pair.holder.criticality] }}>{mgr.pair.holder.criticality} · {mgr.pair.holder.retirementYears}yr</div>
+                </div>
+                <ChevronRight size={13} color={L.accent} style={{ flexShrink: 0 }} />
+                <div style={{ flex: 1, background: `${L.accent}18`, border: `1.5px solid ${L.accent}66`, borderRadius: 8, padding: "8px 8px", textAlign: "center" }}>
+                  <div style={{ fontFamily: "Inter", fontWeight: 700, fontSize: 10.5, color: L.text }}>{mgr.pair.match.name}</div>
+                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 8.5, color: L.accent }}>{mgr.pair.match.tenure}yr tenure · matched</div>
+                </div>
+              </div>
+
+              {/* Remaining 13 direct reports, compact */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
+                {mgr.filler.map((f) => (
+                  <div key={f.id} title={`${f.name} — ${f.role}, ${f.tenure}yr`} style={{
+                    background: L.panel, border: `1px solid ${L.line}`, borderRadius: 6, padding: "5px 4px", textAlign: "center",
+                  }}>
+                    <div style={{ fontFamily: "Inter", fontSize: 9, color: L.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.name}</div>
+                    <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 8, color: L.textDim }}>{f.tenure}yr</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <DataNote light>Matches are same-team pairings by design — Priya Patel now has a direct line to Linda Foster's intercompany allocation knowledge, closing the gap the earlier Knowledge Holders list flagged as unmatched.</DataNote>
+      </Card>
+
+      <Card light accentBar={L.red} style={{ marginTop: 20 }}>
+        <SectionLabel light>Knowledge Holders</SectionLabel>
+        {KNOWLEDGE_HOLDERS.map((k, i) => {
+          const successor = k.successorId ? KNOWLEDGE_SUCCESSORS[k.successorId] : null;
+          const critColor = KNOWLEDGE_CRIT_COLORS[k.criticality];
+          return (
+            <div key={k.id} style={{ padding: "16px 4px", borderBottom: i < KNOWLEDGE_HOLDERS.length - 1 ? `1px solid ${L.line}` : "none" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontFamily: "Inter", fontWeight: 700, fontSize: 14, color: L.text }}>{k.name}</span>
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: L.textDim }}>{k.role} · {k.tenure} yrs tenure</span>
+                  {k.dualEra && <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: L.accent, background: `${L.accent}18`, border: `1px solid ${L.accent}44`, borderRadius: 20, padding: "2px 8px" }}>Dual-Era Holder</span>}
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: critColor, background: `${critColor}18`, border: `1px solid ${critColor}44`, borderRadius: 20, padding: "3px 9px" }}>{k.criticality}</span>
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: L.text, background: L.panelAlt, border: `1px solid ${L.line}`, borderRadius: 20, padding: "3px 9px" }}>Retires in {k.retirementYears} yr{k.retirementYears !== 1 ? "s" : ""}</span>
+                </div>
+              </div>
+              <div style={{ fontFamily: "Inter", fontSize: 12.5, color: L.textMute, lineHeight: 1.5, marginBottom: 8 }}>{k.knowledge}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: L.textDim }}>Transfer status:</span>
+                <span style={{
+                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 700,
+                  color: k.transferStatus === "Not Started" ? "#fff" : L.text,
+                  background: k.transferStatus === "Not Started" ? L.red : k.transferStatus === "N/A" ? L.line : `${L.accent}22`,
+                  border: `1px solid ${k.transferStatus === "Not Started" ? L.red : L.line}`, borderRadius: 20, padding: "2px 9px",
+                }}>{k.transferStatus}</span>
+              </div>
+              {successor && (
+                <div style={{ marginTop: 10, background: L.panelAlt, border: `1px solid ${L.line}`, borderRadius: 10, padding: "10px 14px" }}>
+                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: L.textDim, textTransform: "uppercase", marginBottom: 4 }}>Successor: {successor.name} ({successor.role}, {successor.tenure} yrs)</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: L.red }}>Conceptual gap: {successor.conceptualGap}</span>
+                  </div>
+                  <div style={{ fontFamily: "Inter", fontSize: 11.5, color: L.textMute, lineHeight: 1.4 }}>{successor.note}</div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <DataNote light>Routes to Intervention Marketplace: Knowledge Transfer / Documentation Sprint (for Sole-Source risk), Reverse Mentoring Pairing (for the conceptual automation gap between holder and successor).</DataNote>
+      </Card>
+    </div>
+  );
+}
+
+function SuccessionPlanningView({ mod }) {
+  const [subMode, setSubMode] = useState("pipeline");
+  return (
+    <div style={{
+      background: `radial-gradient(ellipse 900px 500px at 15% 0%, ${L.accentGlow}, transparent 60%), radial-gradient(ellipse 700px 500px at 100% 20%, rgba(47,214,196,0.16), transparent 55%), ${L.bg}`,
+      margin: "-34px -40px", padding: "34px 40px 60px", minHeight: "100vh",
+    }}>
+      <ModuleHeader mod={mod} accent={L.accent} light />
+      <div style={{ display: "flex", gap: 0, marginBottom: 22, borderBottom: `1px solid ${L.line}` }}>
+        {[{ id: "pipeline", label: "Employee Succession" }, { id: "knowledge", label: "ORBIT KCE™" }].map((s) => (
+          <button key={s.id} onClick={() => setSubMode(s.id)} style={{
+            background: "none", border: "none", cursor: "pointer", padding: "10px 4px", marginRight: 28,
+            fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5, fontWeight: subMode === s.id ? 600 : 400,
+            color: subMode === s.id ? L.accent : L.textDim,
+            borderBottom: `2px solid ${subMode === s.id ? L.accent : "transparent"}`, marginBottom: -1,
+          }}>{s.label}</button>
+        ))}
+      </div>
+      {subMode === "knowledge" ? <KnowledgeContinuityView /> : <SuccessionPipelineView />}
+    </div>
+  );
+}
+
+function TalentRadarView({ mod, radarPreset }) {
+  const [profileId, setProfileId] = useState(null);
+  const [search, setSearch] = useState("");
+  const [catFilter, setCatFilter] = useState("All");
+  const [cohortFilter, setCohortFilter] = useState(radarPreset || "All");
+  const [sortKey, setSortKey] = useState("urgency");
+
+  const pool = [...WATCHLIST.map((w, i) => ({ ...w, id: `curated-${i}` })), ...FLAGGED];
+  const profileParticipant = profileId ? pool.find((p) => p.id === profileId) : null;
+  const urgencyRank = { High: 0, Medium: 1, Low: 2 };
+  let list = pool.filter((w) =>
+    w.name.toLowerCase().includes(search.toLowerCase())
+    && (catFilter === "All" || w.category === catFilter)
+    && (cohortFilter === "All" || w.cohort.includes(cohortFilter))
+  );
+  list = [...list].sort((a, b) => {
+    if (sortKey === "urgency") return urgencyRank[a.urgency] - urgencyRank[b.urgency];
+    if (sortKey === "score") return a.score - b.score;
+    if (sortKey === "cohort") return a.cohort.localeCompare(b.cohort);
+    return a.name.localeCompare(b.name);
+  });
+
+  const counts = {
+    total: ALL_PARTICIPANTS.length + WATCHLIST.length,
+    flagged: pool.length,
+    atRisk: pool.filter((p) => p.category === "At-Risk").length,
+    highUrgency: pool.filter((p) => p.urgency === "High").length,
+    highPotential: pool.filter((p) => p.category === "High-Potential").length,
+    readyNow: pool.filter((p) => p.category === "Ready-Now").length,
+  };
+  return (
+    <div style={{
+      background: `radial-gradient(ellipse 900px 500px at 15% 0%, ${L.accentGlow}, transparent 60%), radial-gradient(ellipse 700px 500px at 100% 20%, rgba(47,214,196,0.16), transparent 55%), ${L.bg}`,
+      margin: "-34px -40px", padding: "34px 40px 60px", minHeight: "100vh",
+    }}>
+      <ModuleHeader mod={mod} accent={L.accent} light />
+
+      <Card light accentBar={L.accent} style={{ marginBottom: 20 }}>
+        <SectionLabel light>Cohort Summary — {counts.total} participants</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 28, alignItems: "center" }}>
+          <ResponsiveContainer width={180} height={180}>
+            <PieChart>
+              <Pie
+                data={[
+                  { name: "Ready-Now", value: counts.readyNow, color: "#7fd6c8" },
+                  { name: "High-Potential", value: counts.highPotential, color: L.accent },
+                  { name: "At-Risk", value: counts.atRisk, color: L.red },
+                  { name: "Developing", value: counts.total - counts.flagged, color: L.line },
+                ]}
+                dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={52} outerRadius={78} paddingAngle={2} stroke="none"
+              >
+                {[
+                  { name: "Ready-Now", color: "#7fd6c8" }, { name: "High-Potential", color: L.accent },
+                  { name: "At-Risk", color: L.red }, { name: "Developing", color: L.line },
+                ].map((c, i) => <Cell key={i} fill={c.color} />)}
+              </Pie>
+              <Tooltip contentStyle={{ background: L.panelAlt, border: `1px solid ${L.line}`, borderRadius: 8, fontFamily: "Inter", fontSize: 12, color: L.text }} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px,1fr))", gap: 12 }}>
+            {[
+              { label: "Ready-Now", value: counts.readyNow, color: "#7fd6c8" },
+              { label: "High-Potential", value: counts.highPotential, color: L.accent },
+              { label: "At-Risk", value: counts.atRisk, color: L.red },
+              { label: "Developing", value: counts.total - counts.flagged, color: L.textMute },
+            ].map((s) => (
+              <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 99, background: s.color, flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: L.text }}>{s.value}</div>
+                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: L.textDim, textTransform: "uppercase" }}>{s.label} · {Math.round((s.value / counts.total) * 100)}%</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      <Card light accentBar={L.accent} style={{ marginBottom: 20 }}>
+        <SectionLabel light>How categories are defined (rules-based)</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, marginBottom: 4 }}>
+          {RADAR_CATEGORY_DEFS.map((r) => (
+            <div key={r.cat} style={{
+              background: L.panelAlt, border: `1px solid ${L.line}`, borderLeft: `3px solid ${r.color}`,
+              borderRadius: 12, padding: "16px 18px",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontFamily: "Inter", fontWeight: 700, fontSize: 14.5, color: L.text }}>{r.cat}</span>
+                <span style={{
+                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: r.color, background: `${r.color}18`,
+                  border: `1px solid ${r.color}44`, borderRadius: 20, padding: "3px 9px", whiteSpace: "nowrap",
+                }}>{r.rule}</span>
+              </div>
+              <div style={{ fontFamily: "Inter", fontSize: 12.5, color: L.textMute, lineHeight: 1.55 }}>{r.desc}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 28, marginTop: 18, paddingTop: 18, borderTop: `1px dashed ${L.line}`, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 240px" }}>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: L.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Urgency thresholds</div>
+            {URGENCY_RULES.map((u) => (
+              <div key={u.level} style={{ display: "flex", gap: 8, alignItems: "baseline", marginBottom: 7 }}>
+                <span style={{
+                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 700, minWidth: 52,
+                  color: u.level === "High" ? "#fff" : u.level === "Medium" ? "#4a3a10" : L.text,
+                  background: u.level === "High" ? L.red : u.level === "Medium" ? "#e3c878" : L.line,
+                  borderRadius: 20, padding: "2px 8px", textAlign: "center",
+                }}>{u.level}</span>
+                <span style={{ fontFamily: "Inter", fontSize: 12, color: L.textMute, lineHeight: 1.5 }}>{u.rule}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ flex: "1 1 240px" }}>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: L.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Score inputs</div>
+            {RADAR_INPUTS.map((inp) => (
+              <div key={inp} style={{ display: "flex", gap: 8, alignItems: "baseline", marginBottom: 6 }}>
+                <span style={{ width: 4, height: 4, borderRadius: 99, background: L.accent, flexShrink: 0, marginTop: 6 }} />
+                <span style={{ fontFamily: "Inter", fontSize: 12, color: L.textMute, lineHeight: 1.5 }}>{inp}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {profileParticipant ? (
+        <ProfileCard p={profileParticipant} onBack={() => setProfileId(null)} />
+      ) : (
+      <>
+      <Card light accentBar={L.accent} style={{ marginBottom: 20 }}>
+        <SectionLabel light>Cohort scale — {counts.total} total participants</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px,1fr))", gap: 12 }}>
+          {[
+            { label: "Flagged", value: counts.flagged, color: L.text },
+            { label: "At-Risk", value: counts.atRisk, color: L.red },
+            { label: "High urgency", value: counts.highUrgency, color: L.red },
+            { label: "High-Potential", value: counts.highPotential, color: L.accent },
+            { label: "Ready-Now", value: counts.readyNow, color: "#1f9e93" },
+          ].map((s) => (
+            <div key={s.label} style={{ background: L.panelAlt, border: `1px solid ${L.line}`, borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: s.color }}>{s.value}</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: L.textDim, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontFamily: "Inter", fontSize: 11.5, color: L.textDim, marginTop: 10 }}>
+          {counts.total - counts.flagged} are Developing — tracked in Workforce Constellation™, no watchlist action needed.
+        </div>
+      </Card>
+
+      <Card light accentBar={L.accent}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+          <SectionLabel light>Prioritized Watchlist — refreshed continuously</SectionLabel>
+        </div>
+        <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+          <input
+            value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name…"
+            style={{ background: L.panelAlt, border: `1px solid ${L.line}`, borderRadius: 8, padding: "8px 12px", color: L.text, fontFamily: "Inter", fontSize: 12.5, flex: "1 1 180px", outline: "none" }}
+          />
+          <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)}
+            style={{ background: L.panelAlt, border: `1px solid ${L.line}`, borderRadius: 8, padding: "8px 12px", color: L.text, fontFamily: "Inter", fontSize: 12.5, outline: "none" }}>
+            {["All", "At-Risk", "High-Potential", "Ready-Now"].map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={cohortFilter} onChange={(e) => setCohortFilter(e.target.value)}
+            style={{ background: L.panelAlt, border: `1px solid ${L.line}`, borderRadius: 8, padding: "8px 12px", color: L.text, fontFamily: "Inter", fontSize: 12.5, outline: "none" }}>
+            {["All", ...new Set(pool.map((p) => p.cohort))].map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={sortKey} onChange={(e) => setSortKey(e.target.value)}
+            style={{ background: L.panelAlt, border: `1px solid ${L.line}`, borderRadius: 8, padding: "8px 12px", color: L.text, fontFamily: "Inter", fontSize: 12.5, outline: "none" }}>
+            <option value="urgency">Sort: Urgency</option>
+            <option value="score">Sort: Score</option>
+            <option value="cohort">Sort: Cohort</option>
+            <option value="name">Sort: Name</option>
+          </select>
+        </div>
+        <div style={{ maxHeight: 480, overflowY: "auto" }}>
+        {list.map((w) => {
+          const catDef = RADAR_CATEGORY_DEFS.find((r) => r.cat === w.category);
+          const initials = w.name.split(/[\s.]+/).filter(Boolean).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
+          const urgColor = w.urgency === "High" ? L.red : w.urgency === "Medium" ? L.amber : L.textDim;
+          return (
+            <div key={w.id} onClick={() => setProfileId(w.id)} style={{
+              display: "flex", alignItems: "center", gap: 16, padding: "14px 6px",
+              borderBottom: `1px solid ${L.line}`, cursor: "pointer",
+            }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 99, background: `${catDef ? catDef.color : L.textDim}22`,
+                border: `1.5px solid ${catDef ? catDef.color : L.textDim}66`, display: "flex", alignItems: "center",
+                justifyContent: "center", flexShrink: 0,
+              }}>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 700, color: catDef ? catDef.color : L.textMute }}>{initials}</span>
+              </div>
+              <div style={{ flex: "1 1 160px", minWidth: 140 }}>
+                <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 13.5, color: L.text }}>{w.name}</div>
+                <div style={{ fontFamily: "Inter", fontSize: 11.5, color: L.textDim, marginTop: 1 }}>{w.cohort}</div>
+              </div>
+              <span style={{
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: catDef ? catDef.color : L.textMute,
+                background: `${catDef ? catDef.color : L.textMute}16`, border: `1px solid ${catDef ? catDef.color : L.textMute}44`,
+                borderRadius: 20, padding: "4px 10px", whiteSpace: "nowrap",
+              }}>{w.category}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 62 }}>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, fontWeight: 700, color: L.accent }}>{w.score.toFixed(1)}</span>
+                <TrendTag v={w.trend} />
+              </div>
+              <span style={{
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 700, color: w.urgency === "Medium" ? "#4a3a10" : "#fff",
+                background: urgColor, borderRadius: 20, padding: "3px 10px", whiteSpace: "nowrap",
+              }}>{w.urgency}</span>
+              <ChevronRight size={15} color={L.textDim} style={{ flexShrink: 0 }} />
+            </div>
+          );
+        })}
+        </div>
+        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: L.textDim, marginTop: 12, paddingTop: 12, borderTop: `1px solid ${L.line}` }}>
+          Showing {list.length} of {pool.length} flagged
+        </div>
+      </Card>
+      </>
+      )}
+      <DataNote light>Inputs: checkpoint scores over time, Root Cause AI flags, engagement trendlines. Threshold-based, not model-inferred — matches the SWEP scoring logic already in production. Feeds → Intervention Marketplace.</DataNote>
+    </div>
+  );
+}
+
+function RootCauseView({ mod }) {
+  return (
+    <div>
+      <ModuleHeader mod={mod} />
+      <Card>
+        <SectionLabel>Conditional Rule Set (if/else — name is aspirational, logic is deterministic)</SectionLabel>
+        {ROOT_CAUSE_RULES.map((r, i) => (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1.3fr", gap: 16, alignItems: "center", padding: "16px 4px", borderBottom: i < ROOT_CAUSE_RULES.length - 1 ? `1px solid ${T.line}` : "none" }}>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: T.textMute }}>{r.cond}</div>
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <ChevronRight size={16} color={T.gold} />
+            </div>
+            <div>
+              <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 13, color: T.text }}>{r.cause}</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.textDim, marginTop: 3 }}>→ {r.route}</div>
+            </div>
+          </div>
+        ))}
+      </Card>
+      <DataNote>Reads Talent Radar™ + Workforce Constellation™ signal, applies threshold rules, and routes each flagged root cause to a named intervention. No trained model in v1.</DataNote>
+    </div>
+  );
+}
+
+/* Performance × Potential — the classic 9-box simplified to 4, an alternate lens on the
+   same underlying records Constellation already aggregates. Different framework, same data. */
+const TOTAL_EMPLOYEES = 1842;
+const QUADRANTS = [
+  { id: "highPotential", label: "High Potential", action: "Develop & Accelerate", count: 442, color: "#8b6fd6", quad: "top-left" },
+  { id: "readyNow", label: "Ready Now", action: "Promote & Place", count: 331, color: "#1f9e6e", quad: "top-right" },
+  { id: "needsSupport", label: "Needs Support", action: "Coach & Monitor", count: 534, color: "#d99b4a", quad: "bottom-left" },
+  { id: "solidPerformers", label: "Solid Performers", action: "Engage & Grow", count: 535, color: "#3f7fc4", quad: "bottom-right" },
+];
+function quadrantDots(count, seed) {
+  const rnd = mulberry32(seed);
+  const n = Math.min(22, Math.max(8, Math.round(count / 28)));
+  return Array.from({ length: n }, () => ({ x: 8 + rnd() * 84, y: 8 + rnd() * 84 }));
+}
+const SPOTLIGHT = [
+  { name: "Marcus Johnson", role: "Senior Systems Analyst", dept: "Information Technology", category: "Ready Now", readiness: 92, strengths: ["Leadership", "Strategic Thinking", "Innovation"] },
+  { name: "Aaliyah Carter", role: "Project Manager", dept: "Operations", category: "High Potential", readiness: 89, strengths: ["Leadership", "Communication", "Execution"] },
+  { name: "Daniel Brooks", role: "Mechanical Engineer", dept: "Engineering", category: "Ready Now", readiness: 88, strengths: ["Technical Expertise", "Problem Solving", "Teamwork"] },
+  { name: "Taylor Williams", role: "HR Business Partner", dept: "Human Resources", category: "High Potential", readiness: 87, strengths: ["People Leadership", "Influence", "Change Management"] },
+  { name: "Christopher Moore", role: "Financial Analyst", dept: "Finance", category: "Ready Now", readiness: 86, strengths: ["Analytical Thinking", "Strategy", "Business Acumen"] },
+];
+
+function ConstellationView({ mod }) {
+  const [viewMode, setViewMode] = useState("scatter");
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const constellationPool = [...WATCHLIST.map((w, i) => ({ ...w, id: `curated-${i}` })), ...ALL_PARTICIPANTS];
+  const categoryPeople = selectedCategory ? constellationPool.filter((p) => p.category === selectedCategory) : [];
+
+  return (
+    <div>
+      <ModuleHeader mod={mod} />
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: "0.05em" }}>View</span>
+        <select value={viewMode} onChange={(e) => setViewMode(e.target.value)} style={{
+          background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 8, padding: "8px 14px",
+          color: T.text, fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5, outline: "none", cursor: "pointer",
+        }}>
+          <option value="scatter">Readiness × Engagement</option>
+          <option value="quadrant">Performance × Potential</option>
+        </select>
+      </div>
+      {viewMode === "quadrant" ? <PerformancePotentialView /> : (
+      <>
+      <Card>
+        <SectionLabel>Cohort Map — Readiness × Engagement — click a point or legend item for the roster</SectionLabel>
+        <ResponsiveContainer width="100%" height={320}>
+          <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+            <CartesianGrid stroke={T.line} strokeDasharray="3 3" />
+            <XAxis type="number" dataKey="x" name="Engagement" domain={[0, 100]} tick={{ fill: T.textDim, fontSize: 11 }} label={{ value: "Engagement →", position: "insideBottom", offset: -4, fill: T.textDim, fontSize: 11 }} />
+            <YAxis type="number" dataKey="y" name="Readiness" domain={[0, 100]} tick={{ fill: T.textDim, fontSize: 11 }} label={{ value: "Readiness →", angle: -90, position: "insideLeft", fill: T.textDim, fontSize: 11 }} />
+            <ZAxis type="number" dataKey="z" range={[100, 400]} />
+            <Tooltip cursor={{ strokeDasharray: "3 3" }} contentStyle={{ background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 8, fontFamily: "Inter", fontSize: 12 }} />
+            <Scatter data={CONSTELLATION} fillOpacity={0.85} cursor="pointer" onClick={(d) => setSelectedCategory(d.name)}>
+              {CONSTELLATION.map((d, i) => <Circle key={i} />)}
+            </Scatter>
+          </ScatterChart>
+        </ResponsiveContainer>
+        <div style={{ display: "flex", gap: 18, marginTop: 6, flexWrap: "wrap" }}>
+          {CONSTELLATION.map((d) => (
+            <button key={d.name} onClick={() => setSelectedCategory(d.name)} style={{
+              display: "flex", alignItems: "center", gap: 6, border: "none", cursor: "pointer", padding: "4px 8px 4px 2px",
+              borderRadius: 20, background: selectedCategory === d.name ? T.panelAlt : "none",
+            }}>
+              <span style={{ width: 9, height: 9, borderRadius: 99, background: d.fill, display: "inline-block" }} />
+              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: selectedCategory === d.name ? T.text : T.textMute }}>{d.name}</span>
+            </button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 20, marginTop: 14, paddingTop: 14, borderTop: `1px dashed ${T.line}`, flexWrap: "wrap" }}>
+          {RADAR_CATEGORY_DEFS.map((r) => (
+            <div key={r.cat} style={{ flex: "1 1 200px" }}>
+              <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 11.5, color: T.text, marginBottom: 3 }}>{r.cat}</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: r.color }}>{r.rule}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {selectedCategory && (
+        <Card style={{ marginTop: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <SectionLabel>{selectedCategory} — {categoryPeople.length} people</SectionLabel>
+            <button onClick={() => setSelectedCategory(null)} style={{ background: "none", border: "none", color: T.textDim, fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, cursor: "pointer" }}>✕ clear</button>
+          </div>
+          <div style={{ maxHeight: 360, overflowY: "auto" }}>
+            {categoryPeople.slice(0, 100).map((p) => (
+              <div key={p.id || p.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 6px", borderBottom: `1px solid ${T.line}` }}>
+                <div style={{ flex: "1 1 160px" }}>
+                  <div style={{ fontFamily: "Inter", fontSize: 12.5, color: T.text }}>{p.name}</div>
+                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: T.textDim }}>{p.cohort}</div>
+                </div>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5, fontWeight: 600, color: T.gold, minWidth: 30, textAlign: "right" }}>{p.score.toFixed(1)}</span>
+                <TrendTag v={p.trend} />
+                {p.urgency && (
+                  <span style={{
+                    fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, fontWeight: 700, color: p.urgency === "Medium" ? "#4a3a10" : "#fff",
+                    background: p.urgency === "High" ? "#e08791" : p.urgency === "Medium" ? T.gold : T.textDim, borderRadius: 20, padding: "2px 8px",
+                  }}>{p.urgency}</span>
+                )}
+              </div>
+            ))}
+          </div>
+          {categoryPeople.length > 100 && (
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: T.textDim, marginTop: 10 }}>Showing first 100 of {categoryPeople.length} — narrow further in Talent Radar™.</div>
+          )}
+        </Card>
+      )}
+
+      <DataNote>Aggregation layer only — plots individual Talent Radar™ records against readiness and engagement axes. No independent scoring logic; it's a join and a visualization.</DataNote>
+      </>
+      )}
+    </div>
+  );
+}
+
+function PerformancePotentialView() {
+  const dots = { highPotential: quadrantDots(442, 11), readyNow: quadrantDots(331, 22), needsSupport: quadrantDots(534, 33), solidPerformers: quadrantDots(535, 44) };
+  const byId = Object.fromEntries(QUADRANTS.map((q) => [q.id, q]));
+
+  return (
+    <div>
+      <Card style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <SectionLabel>Performance × Potential</SectionLabel>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: T.textDim, marginTop: -10, marginBottom: 12 }}>Originally sketched as "Talent Map" — same 4-quadrant model, now living inside Workforce Constellation™</div>
+          </div>
+          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.textDim }}>{TOTAL_EMPLOYEES.toLocaleString()} total employees</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "center", padding: "4px 2px" }}>
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: T.textDim, writingMode: "vertical-rl", transform: "rotate(180deg)" }}>POTENTIAL — High → Low</span>
+          </div>
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridTemplateRows: "1fr 1fr", gap: 10, height: 380 }}>
+              {["highPotential", "readyNow", "needsSupport", "solidPerformers"].map((id) => {
+                const q = byId[id];
+                return (
+                  <div key={id} style={{
+                    position: "relative", background: `${q.color}14`, border: `1px solid ${q.color}44`,
+                    borderRadius: 12, padding: "14px 16px", overflow: "hidden",
+                  }}>
+                    <div style={{ position: "relative", zIndex: 2 }}>
+                      <div style={{ fontFamily: "Inter", fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 3 }}>{q.label}</div>
+                      <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: q.color, marginBottom: 8 }}>{q.action}</div>
+                      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: T.text }}>
+                        {Math.round((q.count / TOTAL_EMPLOYEES) * 100)}% <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: T.textDim, fontWeight: 400 }}>({q.count})</span>
+                      </div>
+                    </div>
+                    {dots[id].map((d, i) => (
+                      <span key={i} style={{
+                        position: "absolute", left: `${d.x}%`, top: `${d.y}%`, width: 7, height: 7, borderRadius: 99,
+                        background: q.color, opacity: 0.55, zIndex: 1,
+                      }} />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: T.textDim }}>
+              <span>Low</span><span>PERFORMANCE — Low → High</span><span>High</span>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <SectionLabel>Top Talent Spotlight — Ready Now & High Potential</SectionLabel>
+        {SPOTLIGHT.map((p) => {
+          const q = p.category === "Ready Now" ? byId.readyNow : byId.highPotential;
+          const succession = SUCCESSION_CANDIDATES.find((s) => s.name === p.name);
+          return (
+            <div key={p.name} style={{ padding: "14px 4px", borderBottom: `1px solid ${T.line}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 99, background: `${q.color}22`, border: `1.5px solid ${q.color}88`,
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                }}>
+                  <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: q.color }}>{p.name.split(" ").map((x) => x[0]).join("")}</span>
+                </div>
+                <div style={{ flex: "1 1 200px", minWidth: 160 }}>
+                  <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 13, color: T.text }}>{p.name}</div>
+                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: T.textDim }}>{p.role} · {p.dept}</div>
+                </div>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: q.color, background: `${q.color}18`, border: `1px solid ${q.color}44`, borderRadius: 20, padding: "3px 9px", whiteSpace: "nowrap" }}>{p.category}</span>
+                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: T.text, minWidth: 28, textAlign: "right" }}>{p.readiness}</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 12, paddingLeft: 54 }}>
+                <div>
+                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: T.textDim, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 4 }}>Key Strengths</div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {p.strengths.map((s) => (
+                      <span key={s} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: "#7fd6c8", background: "rgba(127,214,200,0.1)", border: "1px solid rgba(127,214,200,0.3)", borderRadius: 20, padding: "3px 8px" }}>{s}</span>
+                    ))}
+                  </div>
+                </div>
+                {succession && (
+                  <div>
+                    <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: T.textDim, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 4 }}>Gap Reduction Zone</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      {succession.gaps.map((g) => {
+                        const course = succession.nextSteps.find((n) => n.task.toLowerCase().includes(g.skill.split(" ")[0].toLowerCase()))
+                          || succession.nextSteps[0];
+                        return (
+                          <div key={g.skill} style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: T.gold, background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.3)", borderRadius: 20, padding: "3px 8px" }}>{g.skill}</span>
+                            <ChevronRight size={11} color={T.textDim} />
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: T.textMute }}>{course.task} <span style={{ color: T.textDim }}>(Marketplace)</span></span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </Card>
+      <DataNote>Same underlying records as the Readiness × Engagement view — a different, more instantly-recognizable framework (the classic 9-box, simplified to 4) layered on top, not a separate scoring model.</DataNote>
+    </div>
+  );
+}
+
+function InterventionView({ mod }) {
+  return (
+    <div>
+      <ModuleHeader mod={mod} />
+      <Card>
+        <SectionLabel>Root Cause → Intervention Map (admin-curated)</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px,1fr))", gap: 14 }}>
+          {INTERVENTIONS.map((iv) => (
+            <div key={iv.name} style={{ background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 10, padding: 16 }}>
+              <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 14, color: T.text, marginBottom: 6 }}>{iv.name}</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.gold, marginBottom: 4 }}>for: {iv.rootCause}</div>
+              <div style={{ fontFamily: "Inter", fontSize: 12, color: T.textMute }}>{iv.format}</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: T.textDim, marginTop: 8 }}>Owner: {iv.owner}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <DataNote>A human (Jhen or Anne) maintains this mapping. No ML needed to match a flagged root cause to a known intervention list.</DataNote>
+    </div>
+  );
+}
+
+function PredictiveView({ mod }) {
+  return (
+    <div>
+      <ModuleHeader mod={mod} />
+      <div style={{
+        background: "rgba(217,126,44,0.1)", border: `1px solid ${T.gold}44`, borderRadius: 10,
+        padding: "12px 16px", marginBottom: 20, fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#d99b4a",
+        display: "flex", gap: 10, alignItems: "center",
+      }}>
+        <Lock size={14} /> Not live in v1 — requires historical outcome data to train against. Shown here as a v2 placeholder.
+      </div>
+      <Card>
+        <SectionLabel>Readiness Trajectory — Actual vs. Forecast</SectionLabel>
+        <ResponsiveContainer width="100%" height={240}>
+          <LineChart data={FORECAST}>
+            <CartesianGrid stroke={T.line} strokeDasharray="3 3" />
+            <XAxis dataKey="month" tick={{ fill: T.textDim, fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis domain={[2.5, 4.5]} tick={{ fill: T.textDim, fontSize: 11 }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 8, fontFamily: "Inter", fontSize: 12 }} />
+            <Line type="monotone" dataKey="actual" stroke="#7fd6c8" strokeWidth={2.5} dot={{ r: 3 }} connectNulls={false} />
+            <Line type="monotone" dataKey="forecast" stroke={T.gold} strokeWidth={2} strokeDasharray="5 4" dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </Card>
+      <DataNote>Soft framing only ("trending toward," not hard-percentage confidence claims) — avoids overpromising to enterprise buyers until real models are trained on cohort history.</DataNote>
+    </div>
+  );
+}
+
+function MarketplaceView({ mod }) {
+  return (
+    <div>
+      <ModuleHeader mod={mod} />
+      <Card>
+        <SectionLabel>Content &amp; Partner Library (admin-curated)</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px,1fr))", gap: 14 }}>
+          {MARKETPLACE.map((m) => (
+            <div key={m.title} style={{ background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 10, padding: 16 }}>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: T.gold, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>{m.type}</div>
+              <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 13.5, color: T.text, marginBottom: 6 }}>{m.title}</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.textDim }}>{m.partner}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <DataNote>Business development function, not an ML problem — curation of what's available to deploy across clients.</DataNote>
+    </div>
+  );
+}
+
+function ClientDetailView({ name, detail, onBack, onViewTalent }) {
+  const maxFunnel = detail.funnel[0].value;
+  const notYetPlaced = detail.activeParticipants && detail.hired ? detail.activeParticipants - detail.hired : null;
+  const newWagesCreated = detail.hired && detail.medianWage ? Math.round(detail.hired * detail.medianWage * 2080) : null;
+  const milestonesAdvanced = (detail.referralReady || 0) + (detail.placementReady || 0) + (detail.hired || 0);
+  const gapCosts = detail.medianWage && notYetPlaced ? detail.readinessScores.map((r) => {
+    const gap = 100 - r.score;
+    const weeksDelay = Math.round((gap / 10) * 10) / 10;
+    const perParticipant = Math.round(weeksDelay * detail.medianWage * 40);
+    return { ...r, gap, weeksDelay, perParticipant, cohortTotal: perParticipant * notYetPlaced };
+  }) : null;
+  const totalGapCost = gapCosts ? gapCosts.reduce((s, r) => s + r.cohortTotal, 0) : null;
+
+  return (
+    <div>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: T.gold, fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, cursor: "pointer", padding: 0, marginBottom: 16 }}>← Back to rollup</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 20, flexWrap: "wrap", gap: 8 }}>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: T.text }}>{name}</div>
+        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.textDim }}>{detail.period}</div>
+      </div>
+
+      {onViewTalent && (
+        <button onClick={onViewTalent} style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%",
+          background: T.panelAlt, border: `1px solid ${LAYER.Individual.color}66`, borderRadius: 12,
+          padding: "14px 18px", marginBottom: 20, cursor: "pointer", textAlign: "left",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Target size={17} color={LAYER.Individual.color} strokeWidth={1.75} />
+            <span style={{ fontFamily: "Inter", fontSize: 13, color: T.text, fontWeight: 500 }}>View LIFT JAX participants in Talent Radar™</span>
+          </div>
+          <ChevronRight size={16} color={T.textDim} />
+        </button>
+      )}
+
+      {newWagesCreated && (
+        <Card style={{ marginBottom: 20 }}>
+          <SectionLabel>Value Created</SectionLabel>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px,1fr))", gap: 14 }}>
+            <div style={{ background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 10, padding: "14px 16px" }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: "#7fd6c8" }}>${newWagesCreated.toLocaleString()}</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: T.textDim, marginTop: 4 }}>New Annualized Wages Created — {detail.hired} hires × ${detail.medianWage}/hr × 2,080 hrs</div>
+            </div>
+            <div style={{ background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 10, padding: "14px 16px" }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: T.gold }}>{milestonesAdvanced}</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: T.textDim, marginTop: 4 }}>Participants advanced to Referral-Ready, Placement-Ready, or Hired this period</div>
+            </div>
+          </div>
+          <DataNote>Directly computed from your own hire count and median wage — a defensible number, unlike the flyer's $569K figure, which doesn't fully reconcile against the numbers shown alongside it.</DataNote>
+        </Card>
+      )}
+
+      {gapCosts && (
+        <Card style={{ marginBottom: 20 }}>
+          <SectionLabel>Cost of Readiness Gaps</SectionLabel>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 14 }}>
+            <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: T.gold }}>${totalGapCost.toLocaleString()}</span>
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.textDim }}>estimated across {notYetPlaced} not-yet-placed participants</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px,1fr))", gap: 10 }}>
+            {gapCosts.map((r) => (
+              <div key={r.cat} style={{ background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 8, padding: "10px 12px" }}>
+                <div style={{ fontFamily: "Inter", fontSize: 11.5, color: T.textMute, marginBottom: 4 }}>{r.cat}</div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, fontWeight: 600, color: T.gold }}>${r.cohortTotal.toLocaleString()}</div>
+              </div>
+            ))}
+          </div>
+          <DataNote>Modeled from LIFT JAX's own wage and headcount data — weeks-of-delay-per-gap-point is an estimate, not measured. Full methodology on the client-facing snapshot.</DataNote>
+        </Card>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px,1fr))", gap: 12, marginBottom: 20 }}>
+        {detail.kpis.map((k) => (
+          <Card key={k.label}>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: T.textDim, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>{k.label}</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: T.text }}>{k.value}</div>
+            {k.sub && <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: T.gold, marginTop: 3 }}>{k.sub}</div>}
+          </Card>
+        ))}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 20, marginBottom: 20 }}>
+        <Card>
+          <SectionLabel>Pipeline Funnel</SectionLabel>
+          {detail.funnel.map((f, i) => (
+            <div key={f.stage} style={{ marginBottom: 13 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: T.textMute, marginBottom: 3 }}>
+                <span>{f.stage}</span><span style={{ color: T.text, fontWeight: 600 }}>{f.value}</span>
+              </div>
+              <div style={{ height: 10, borderRadius: 6, background: T.line, overflow: "hidden", marginBottom: 5 }}>
+                <div style={{ width: `${(f.value / maxFunnel) * 100}%`, height: "100%", background: T.gold, opacity: 1 - i * 0.07, borderRadius: 6 }} />
+              </div>
+              <div style={{ fontFamily: "Inter", fontSize: 10.5, color: T.textDim, lineHeight: 1.4 }}>{FUNNEL_DEFS[f.stage]}</div>
+            </div>
+          ))}
+        </Card>
+        <Card style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <SectionLabel>Overall Readiness</SectionLabel>
+          <Gauge value={detail.overallReadiness} label="Composite (of 100)" color={T.gold} />
+          <div style={{ width: "100%", marginTop: 10 }}>
+            {detail.readinessScores.map((r) => (
+              <div key={r.cat} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5 }}>
+                <span style={{ color: T.textMute }}>{r.cat}</span><span style={{ color: T.text, fontWeight: 600 }}>{r.score}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <Card style={{ marginBottom: 20 }}>
+        <SectionLabel>Partner Impact Snapshot</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1.2fr 1fr 1fr", gap: 8, fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: T.textDim, textTransform: "uppercase", letterSpacing: "0.05em", padding: "0 4px 8px", borderBottom: `1px solid ${T.line}` }}>
+          <div>Partner</div><div>Served</div><div>Readiness Δ</div><div>Referral Rate</div><div>Hire Rate</div>
+        </div>
+        {detail.partners.map((p) => (
+          <div key={p.partner} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1.2fr 1fr 1fr", gap: 8, alignItems: "center", padding: "10px 4px", borderBottom: `1px solid ${T.line}` }}>
+            <span style={{ fontFamily: "Inter", fontSize: 12.5, color: T.text }}>{p.partner}</span>
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: T.textMute }}>{p.served}</span>
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#7fd6c8" }}>{p.improvement}</span>
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: T.textMute }}>{p.referralRate}</span>
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: T.textMute }}>{p.hireRate}</span>
+          </div>
+        ))}
+      </Card>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20, marginBottom: 20 }}>
+        <Card>
+          <SectionLabel>Employer Outcomes</SectionLabel>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px,1fr))", gap: 12 }}>
+            {[
+              { label: "Employers Engaged", value: detail.employerOutcomes.employersEngaged },
+              { label: "Open Positions", value: detail.employerOutcomes.openPositions },
+              { label: "Referred", value: detail.employerOutcomes.participantsReferred },
+              { label: "Interviews", value: detail.employerOutcomes.interviewsCompleted },
+              { label: "Offer Rate", value: detail.employerOutcomes.offerRate },
+              { label: "Hires", value: detail.employerOutcomes.hires },
+              { label: "90-Day Retention", value: detail.employerOutcomes.retention90 },
+              { label: "Median Wage", value: detail.employerOutcomes.medianStartingWage },
+              { label: "Avg Wage Increase", value: detail.employerOutcomes.avgWageIncrease },
+              { label: "With Benefits", value: detail.employerOutcomes.withBenefits },
+            ].map((s) => (
+              <div key={s.label} style={{ background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 8, padding: "9px 10px" }}>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: T.text }}>{s.value}</div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: T.textDim, textTransform: "uppercase", marginTop: 2 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card>
+          <SectionLabel>Wage & Income Impact</SectionLabel>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: T.textDim, textTransform: "uppercase", letterSpacing: "0.05em" }}>Total Annualized Wage Impact</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 30, fontWeight: 700, color: "#7fd6c8", marginBottom: 6 }}>${detail.totalWageImpact.toLocaleString()}</div>
+          <div style={{ fontFamily: "Inter", fontSize: 10.5, color: T.textDim, lineHeight: 1.5, marginBottom: 12 }}>
+            Combined increase in yearly income from placements — new annualized wage vs. pre-program wage, summed across everyone hired. Doesn't fully reconcile against the 22 hires / $4.10 avg increase shown elsewhere — likely a broader hire count or longer window. Confirm the formula against source data.
+          </div>
+          <ResponsiveContainer width="100%" height={120}>
+            <LineChart data={detail.wageTrend}>
+              <XAxis dataKey="period" tick={{ fill: T.textDim, fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis hide domain={["dataMin - 1", "dataMax + 1"]} />
+              <Tooltip contentStyle={{ background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 8, fontFamily: "Inter", fontSize: 12 }} />
+              <Line type="monotone" dataKey="wage" stroke="#7fd6c8" strokeWidth={2.5} dot={{ r: 3 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+      <DataNote>From the LIFT JAX shared flyer — Partner Impact and Employer Outcomes are aggregation/reporting only, rolled up from Talent Radar™, Workforce Constellation™, and Intervention Marketplace records.</DataNote>
+    </div>
+  );
+}
+
+/* ─── Action Center — synthesizes across every module into audience-specific, prioritized actions ─── */
+const CASE_MANAGER_ROUTE = {
+  "At-Risk": "Root Cause AI flag → route to intervention this week",
+};
+function buildCaseManagerQueue() {
+  const pool = [...WATCHLIST.map((w, i) => ({ ...w, id: `curated-${i}` })), ...FLAGGED];
+  return pool
+    .filter((p) => p.category === "At-Risk")
+    .sort((a, b) => (a.urgency === "High" ? 0 : 1) - (b.urgency === "High" ? 0 : 1))
+    .slice(0, 8)
+    .map((p) => {
+      const cat = RADAR_CATEGORY_DEFS.find((r) => r.cat === "At-Risk");
+      const rule = ROOT_CAUSE_RULES[Math.abs(hashStr(p.name)) % ROOT_CAUSE_RULES.length];
+      return { ...p, rootCause: rule.cause, route: rule.route };
+    });
+}
+function buildExecutiveActions() {
+  const actions = [];
+  const liftJax = CLIENT_DETAIL["LIFT JAX — Debs Store"];
+  if (liftJax) {
+    const worstCat = [...liftJax.readinessScores].sort((a, b) => a.score - b.score)[0];
+    actions.push({
+      title: `Fund a ${worstCat.cat} intervention for LIFT JAX`,
+      why: `Lowest-scoring readiness category (${worstCat.score}/100) — highest cost-of-gap category, per Cost of Readiness Gaps.`,
+      impact: "Highest $ leverage of any single readiness investment this period.", tag: "Cost of Gaps",
+    });
+    const funnel = liftJax.funnel;
+    let worstDrop = { from: null, pct: 0 };
+    for (let i = 1; i < funnel.length; i++) {
+      const drop = 1 - funnel[i].value / funnel[i - 1].value;
+      if (drop > worstDrop.pct) worstDrop = { from: funnel[i - 1].stage, to: funnel[i].stage, pct: drop };
+    }
+    actions.push({
+      title: `Investigate the ${worstDrop.from} → ${worstDrop.to} drop-off`,
+      why: `${Math.round(worstDrop.pct * 100)}% of participants are lost at this pipeline stage — the largest single drop in the funnel.`,
+      impact: "Fixing this stage has more leverage than adding new intake.", tag: "Pipeline Funnel",
+    });
+  }
+  const readyNowCount = SUCCESSION_CANDIDATES.filter((c) => c.stage === "Ready Now").length;
+  if (readyNowCount > 0) {
+    actions.push({
+      title: `Approve ${readyNowCount} pending promotion${readyNowCount > 1 ? "s" : ""}`,
+      why: `${SUCCESSION_CANDIDATES.filter((c) => c.stage === "Ready Now").map((c) => c.name).join(", ")} scored Ready Now in Succession Pipeline.`,
+      impact: "Delaying a Ready Now decision risks attrition of your highest-readiness talent.", tag: "Succession Pipeline",
+    });
+  }
+  const highFrictionLeads = SIGNALSCAN_ORGS.filter((o) => o.band === "High").length;
+  actions.push({
+    title: `Prioritize outreach to ${highFrictionLeads} High-friction leads`,
+    why: `${highFrictionLeads} scanned orgs are in the High friction band — the strongest buying signal SignalScan produces.`,
+    impact: "Highest-probability new engagements in the pipeline.", tag: "SignalScan",
+  });
+  return actions;
+}
+const PARTICIPANT_FRIENDLY_COPY = {
+  "Professionalism & Soft Skills Workshop": "Build stronger workplace habits",
+  "Interview Skills Workshop": "Practice and sharpen your interview skills",
+  "Digital Literacy Certification": "Get comfortable with the digital tools employers expect",
+  "Technical Skills Assessment Review": "Review where your technical skills stand",
+  "Resume & Application Optimization": "Polish your resume and applications",
+  "Career Pathway Coaching Session": "Talk through your career path with a coach",
+};
+
+function CaseManagerQueue() {
+  const queue = buildCaseManagerQueue();
+  return (
+    <Card>
+      <SectionLabel>Today's Priority Queue — {queue.length} people need attention</SectionLabel>
+      {queue.map((p) => (
+        <div key={p.id || p.name} style={{ padding: "12px 4px", borderBottom: `1px solid ${T.line}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div>
+              <span style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 13, color: T.text }}>{p.name}</span>
+              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: T.textDim, marginLeft: 8 }}>{p.cohort}</span>
+            </div>
+            <span style={{
+              fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, fontWeight: 700, color: p.urgency === "High" ? "#fff" : "#4a3a10",
+              background: p.urgency === "High" ? "#e08791" : T.gold, borderRadius: 20, padding: "3px 9px",
+            }}>{p.urgency} urgency</span>
+          </div>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.textMute, marginTop: 6 }}>
+            {p.rootCause} <ChevronRight size={11} style={{ display: "inline", verticalAlign: "middle" }} color={T.textDim} /> <span style={{ color: T.gold }}>{p.route}</span>
+          </div>
+        </div>
+      ))}
+      <DataNote>Synthesized from Talent Radar™ (At-Risk, sorted by urgency) and Root Cause AI's condition → routed-intervention table.</DataNote>
+    </Card>
+  );
+}
+
+function ExecutiveActions() {
+  const actions = buildExecutiveActions();
+  return (
+    <Card>
+      <SectionLabel>Top Strategic Actions</SectionLabel>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px,1fr))", gap: 14 }}>
+        {actions.map((a, i) => (
+          <div key={i} style={{ background: T.panelAlt, border: `1px solid ${T.line}`, borderRadius: 12, padding: "16px 18px" }}>
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: T.gold, background: T.goldSoft, border: `1px solid ${T.gold}44`, borderRadius: 20, padding: "3px 9px" }}>{a.tag}</span>
+            <div style={{ fontFamily: "Inter", fontWeight: 700, fontSize: 14, color: T.text, margin: "10px 0 8px" }}>{a.title}</div>
+            <div style={{ fontFamily: "Inter", fontSize: 12, color: T.textMute, lineHeight: 1.5, marginBottom: 8 }}>{a.why}</div>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: "#7fd6c8" }}>→ {a.impact}</div>
+          </div>
+        ))}
+      </div>
+      <DataNote>Synthesized from Cost of Readiness Gaps, Pipeline Funnel, Succession Pipeline, and SignalScan — one ranked list instead of four dashboards to check separately.</DataNote>
+    </Card>
+  );
+}
+
+function ParticipantView() {
+  const [selectedId, setSelectedId] = useState(WATCHLIST[0] ? "curated-0" : null);
+  const pool = [...WATCHLIST.map((w, i) => ({ ...w, id: `curated-${i}` })), ...FLAGGED.slice(0, 20)];
+  const p = pool.find((x) => x.id === selectedId) || pool[0];
+  const prof = buildProfile(p);
+  const steps = prof.nextSteps.map((s) => PARTICIPANT_FRIENDLY_COPY[s.task] || s.task);
+  return (
+    <Card light>
+      <div style={{ marginBottom: 16 }}>
+        <SectionLabel light>Choose a participant</SectionLabel>
+        <select value={p.id} onChange={(e) => setSelectedId(e.target.value)} style={{
+          background: L.panelAlt, border: `1px solid ${L.line}`, borderRadius: 8, padding: "8px 12px",
+          color: L.text, fontFamily: "Inter", fontSize: 12.5, outline: "none",
+        }}>
+          {pool.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+        </select>
+      </div>
+      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: L.text, marginBottom: 4 }}>Hi {p.name.split(" ")[0]} 👋</div>
+      <div style={{ fontFamily: "Inter", fontSize: 13.5, color: L.textMute, marginBottom: 18, lineHeight: 1.6 }}>
+        Here's what would help you most right now — no jargon, just the next few things worth doing.
+      </div>
+      {steps.map((s, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: L.panelAlt, border: `1px solid ${L.line}`, borderRadius: 10, marginBottom: 8 }}>
+          <span style={{
+            width: 24, height: 24, borderRadius: 99, background: L.accent, color: "#fff", display: "flex", alignItems: "center",
+            justifyContent: "center", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700, flexShrink: 0,
+          }}>{i + 1}</span>
+          <span style={{ fontFamily: "Inter", fontSize: 13.5, color: L.text }}>{s}</span>
+        </div>
+      ))}
+      <DataNote light>Same Root Cause AI routing everyone else sees — rewritten in plain, encouraging language for the person it's actually about.</DataNote>
+    </Card>
+  );
+}
+
+function ActionCenterView() {
+  const [role, setRole] = useState("caseManager");
+  const ROLES = [
+    { id: "caseManager", label: "Case Manager" },
+    { id: "executive", label: "Executive" },
+    { id: "participant", label: "Participant" },
+  ];
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        {ROLES.map((r) => (
+          <button key={r.id} onClick={() => setRole(r.id)} style={{
+            background: role === r.id ? T.gold : T.panel, color: role === r.id ? T.navyDeep : T.textMute,
+            border: `1px solid ${role === r.id ? T.gold : T.line}`, borderRadius: 20, padding: "8px 16px",
+            fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, cursor: "pointer", fontWeight: role === r.id ? 600 : 400,
+          }}>{r.label}</button>
+        ))}
+      </div>
+      {role === "caseManager" && <CaseManagerQueue />}
+      {role === "executive" && <ExecutiveActions />}
+      {role === "participant" && <ParticipantView />}
+    </div>
+  );
+}
+
+function CommandCenterView({ mod, onNavigate, setRadarPreset }) {
+  const [topTab, setTopTab] = useState("rollup");
+  const [clientView, setClientView] = useState(null);
+  const radarData = SIGNALSCAN_ORGS[0].categories.slice(0, 6).map((c) => ({ subject: c.cat.split(" ")[0], value: 100 - c.score }));
+  const detail = clientView ? CLIENT_DETAIL[clientView] : null;
+  return (
+    <div>
+      <ModuleHeader mod={mod} />
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        {[{ id: "rollup", label: "Rollup" }, { id: "actions", label: "Action Center" }].map((t) => (
+          <button key={t.id} onClick={() => setTopTab(t.id)} style={{
+            background: topTab === t.id ? T.gold : T.panel, color: topTab === t.id ? T.navyDeep : T.textMute,
+            border: `1px solid ${topTab === t.id ? T.gold : T.line}`, borderRadius: 20, padding: "8px 16px",
+            fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, cursor: "pointer", fontWeight: topTab === t.id ? 600 : 400,
+          }}>{t.label}</button>
+        ))}
+      </div>
+      {topTab === "actions" ? <ActionCenterView /> : (
+      <>
+      {clientView ? (
+        detail ? (
+          <ClientDetailView
+            name={clientView} detail={detail} onBack={() => setClientView(null)}
+            onViewTalent={() => { setRadarPreset("Debs Store"); onNavigate("radar"); }}
+          />
+        ) : (
+          <Card>
+            <button onClick={() => setClientView(null)} style={{ background: "none", border: "none", color: T.gold, fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, cursor: "pointer", padding: 0, marginBottom: 16 }}>← Back to rollup</button>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: T.text, marginBottom: 8 }}>{clientView}</div>
+            <div style={{ fontFamily: "Inter", fontSize: 13, color: T.textMute }}>No detailed operational dashboard modeled yet for this engagement — LIFT JAX is the only one built out so far, based on their shared flyer.</div>
+          </Card>
+        )
+      ) : (
+      <>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
+        {[
+          { label: "Program Impact Score", value: "4.82", sub: "/ 5.0" },
+          { label: "Readiness Score", value: "3.86", sub: "↑ from 3.43" },
+          { label: "ROI (est.)", value: "3.1×", sub: "cohort avg" },
+          { label: "NPS", value: "+62", sub: "post-program" },
+        ].map((k) => (
+          <Card key={k.label}>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: T.textDim, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>{k.label}</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 30, fontWeight: 700, color: T.text }}>{k.value}</div>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.gold, marginTop: 4 }}>{k.sub}</div>
+          </Card>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+        <Card>
+          <SectionLabel>Active Engagements — click for detailed view</SectionLabel>
+          {CLIENTS.map((c) => (
+            <div key={c} onClick={() => setClientView(c)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 4px", borderBottom: `1px solid ${T.line}`, cursor: "pointer" }}>
+              <span style={{ fontFamily: "Inter", fontSize: 13, color: T.text }}>{c}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ width: 7, height: 7, borderRadius: 99, background: "#7fd6c8", display: "inline-block" }} />
+                <ChevronRight size={14} color={T.textDim} />
+              </div>
+            </div>
+          ))}
+        </Card>
+        <Card>
+          <SectionLabel>Readiness Composite</SectionLabel>
+          <ResponsiveContainer width="100%" height={180}>
+            <RadarChart data={radarData} outerRadius={70}>
+              <PolarGrid stroke={T.line} />
+              <PolarAngleAxis dataKey="subject" tick={{ fill: T.textMute, fontSize: 10.5, fontFamily: "Inter" }} />
+              <RRadar dataKey="value" stroke={T.gold} fill={T.gold} fillOpacity={0.28} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+      <Card>
+        <SectionLabel>Module Rollup — jump into any module</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px,1fr))", gap: 10 }}>
+          {MODULES.filter((m) => m.id !== "cec").map((m) => {
+            const Icon = m.icon;
+            return (
+              <button key={m.id} onClick={() => onNavigate(m.id)} style={{
+                background: T.panelAlt, border: `1px solid ${T.line}`, borderLeft: `3px solid ${LAYER[m.layer].color}`,
+                borderRadius: 10, padding: "14px 14px",
+                display: "flex", flexDirection: "column", gap: 8, cursor: "pointer", textAlign: "left",
+              }}>
+                <Icon size={17} color={T.gold} strokeWidth={1.75} />
+                <span style={{ fontFamily: "Inter", fontSize: 12.5, color: T.text, fontWeight: 500 }}>{m.short}</span>
+                <StagePill stage={m.stage} />
+              </button>
+            );
+          })}
+        </div>
+      </Card>
+      <DataNote>Rolls up outputs from every other module — no independent logic, aggregation and reporting only. This is the shell every module ultimately reports into.</DataNote>
+      </>
+      )}
+      </>
+      )}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────
+   SHELL — sidebar + router
+──────────────────────────────────────────────────────────── */
+const VIEWS = {
+  signalscan: SignalScanView, radar: TalentRadarView, succession: SuccessionPlanningView, rootcause: RootCauseView,
+  constellation: ConstellationView, intervention: InterventionView,
+  predictive: PredictiveView, cec: CommandCenterView, marketplace: MarketplaceView,
+};
+
+function OrbitSystemSkeleton() {
+  const [active, setActive] = useState("cec");
+  const [radarPreset, setRadarPreset] = useState(null);
+  const mod = MODULES.find((m) => m.id === active);
+  const View = VIEWS[active];
+  const cecModule = MODULES.find((m) => m.id === "cec");
+  const layerGroups = Object.keys(LAYER).map((layerName) => ({
+    layerName, mods: MODULES.filter((m) => m.layer === layerName && m.id !== "cec"),
+  }));
+
+  return (
+    <div style={{ minHeight: "100vh", background: T.navyDeep, display: "flex", fontFamily: "Inter, sans-serif" }}>
+      <style>{fontImport}</style>
+
+      {/* SIDEBAR */}
+      <div style={{ width: 244, background: T.navy, borderRight: `1px solid ${T.line}`, padding: "26px 16px", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px", marginBottom: 30 }}>
+          <div style={{ width: 30, height: 30, borderRadius: 99, border: `1.5px solid ${T.gold}`, position: "relative", flexShrink: 0 }}>
+            <span style={{ position: "absolute", top: 4, left: "50%", width: 4, height: 4, background: T.gold, borderRadius: 99, transform: "translateX(-50%)" }} />
+            <span style={{ position: "absolute", width: 12, height: 12, border: `1px dotted ${T.gold}`, borderRadius: 99, top: 8, left: 8 }} />
+          </div>
+          <div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 15.5, color: T.text, letterSpacing: "0.02em" }}>O.R.B.I.T.</div>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: T.textDim, letterSpacing: "0.04em" }}>SYSTEM v0.1 — SKELETON</div>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 18, paddingBottom: 14, borderBottom: `1px solid ${T.line}` }}>
+          <div style={{
+            fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: T.gold,
+            textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px 8px",
+            display: "flex", alignItems: "center", gap: 6,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: 99, background: T.gold, display: "inline-block" }} />
+            All Layers
+          </div>
+          <NavItem m={cecModule} active={active} setActive={setActive} />
+        </div>
+
+        {layerGroups.map((g, i) => (
+          <div key={g.layerName}>
+            <div style={{
+              fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: LAYER[g.layerName].color,
+              textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px 8px", marginTop: i > 0 ? 18 : 0,
+              display: "flex", alignItems: "center", gap: 6,
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: 99, background: LAYER[g.layerName].color, display: "inline-block" }} />
+              {g.layerName}
+            </div>
+            {g.mods.map((m) => <NavItem key={m.id} m={m} active={active} setActive={setActive} />)}
+          </div>
+        ))}
+
+        <div style={{ marginTop: "auto", padding: "14px 10px", borderTop: `1px solid ${T.line}`, fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: T.textDim, lineHeight: 1.6 }}>
+          Rules-based v1 across 6 of 9 modules.<br />Predictive AI is the only v2 AI/ML candidate.
+        </div>
+      </div>
+
+      {/* MAIN */}
+      <div style={{ flex: 1, padding: "34px 40px", maxWidth: 1180 }}>
+        <View mod={mod} onNavigate={setActive} radarPreset={radarPreset} setRadarPreset={setRadarPreset} />
+      </div>
+    </div>
+  );
+}
+
+function NavItem({ m, active, setActive }) {
+  const Icon = m.icon;
+  const isActive = active === m.id;
+  return (
+    <button onClick={() => setActive(m.id)} style={{
+      width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8,
+      background: isActive ? T.goldSoft : "transparent", border: "none", cursor: "pointer", marginBottom: 2,
+      color: isActive ? T.gold : T.textMute, textAlign: "left",
+    }}>
+      <Icon size={15} strokeWidth={1.75} />
+      <span style={{ fontFamily: "Inter", fontSize: 12.5, fontWeight: isActive ? 600 : 400 }}>{m.short}</span>
+    </button>
+  );
+}
+
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<OrbitSystemSkeleton />);
+</script>
+</body>
+</html>
